@@ -11,6 +11,8 @@ import com.pawel.vod_api.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class WatchlistService {
@@ -36,5 +38,20 @@ public class WatchlistService {
 
         Watchlist savedItem = watchlistRepository.save(newMovie);
         return new WatchlistResponseDto(savedItem.getId(), profile.getProfileName(), movie.getTitle());
+    }
+
+    public List<WatchlistResponseDto> getWatchlist(Long userId, Long profileId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono użytkownika o ID:" + userId));
+
+        Profile profile = user.getProfiles().stream()
+                .filter(p -> p.getId().equals(profileId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu"));
+
+        return profile.getWatchlists().stream()
+                .map(watchlist -> new WatchlistResponseDto(watchlist.getId(), watchlist.getProfile().getProfileName(), watchlist.getMovie().getTitle()
+                ))
+                .toList();
     }
 }

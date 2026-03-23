@@ -12,6 +12,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,11 +54,26 @@ public class WatchlistControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.profileName").value("Test Profile"))
                 .andExpect(jsonPath("$.movieTitle").value("Test Movie"));
+    }
+    @Test
+    void shouldReturnWatchlist() throws Exception{
+        UserResponseDto user = new UserResponseDto();
+        user.setId(1L);
+        ProfileResponseDto profile = new ProfileResponseDto();
+        profile.setId(1L);
+        profile.setProfileName("Test Profile");
+        MovieResponseDto movie = new MovieResponseDto();
+        movie.setTitle("Test Movie");
 
+        WatchlistResponseDto watchlist = new WatchlistResponseDto();
+        watchlist.setId(1L);
+        watchlist.setMovieTitle(movie.getTitle());
+        watchlist.setProfileName(profile.getProfileName());
+        Mockito.when(watchlistService.getWatchlist(1L, 1L)).thenReturn(List.of(watchlist));
 
-
-
-
-
+        mockMvc.perform(get("/api/users/1/profiles/1/watchlists"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].profileName").value("Test Profile"))
+                .andExpect(jsonPath("$[0].movieTitle").value("Test Movie"));
     }
 }
