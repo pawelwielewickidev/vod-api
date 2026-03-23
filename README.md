@@ -4,8 +4,7 @@
 
 This project is under active development. The core architecture and user/profile management are complete. Here is what's coming next:
 
-* **[In Progress] Personal Watchlists:** Allowing profiles to add, view, and remove movies from their individual watchlists.
-* **[Planned] Global Exception Handling:** Implementing `@ControllerAdvice` for cleaner, standardized API error responses.
+* **[In progress] Global Exception Handling:** Implementing `@ControllerAdvice` for cleaner, standardized API error responses.
 * **[Planned] Data Validation:** Adding strict validation rules (`@Valid`, `@NotBlank`) for incoming JSON payloads.
 * **[Planned] Spring Security:** Securing endpoints with JWT authentication and role-based access control (Admin vs User).
 
@@ -73,7 +72,8 @@ Here are the main endpoints available in the API:
 
 **Watchlists**
 * `POST /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Add a movie to a profile's watchlist.
-* `GET /api/users/{userId}/profiles/{profileId}/watchlists - Retrieve all movies in profile's watchlist.
+* `GET /api/users/{userId}/profiles/{profileId}/watchlists` - Retrieve all movies in profile's watchlist.
+* `DELETE /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Removing the movie from watchlist.
 
 ---
 *Created by Pawel Wielewicki - Feel free to contact me!*
