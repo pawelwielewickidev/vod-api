@@ -3,6 +3,7 @@ package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.UserDto;
 import com.pawel.vod_api.dto.UserResponseDto;
+import com.pawel.vod_api.exception.ResourceNotFoundException;
 import com.pawel.vod_api.model.User;
 import com.pawel.vod_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class UserService {
     }
     public UserResponseDto getUserById(Long id){
         User user = userRepository.findById(id).orElseThrow(
-                () -> new RuntimeException ("Brak użytkownika o ID:" + id)
+                () -> new ResourceNotFoundException("Brak użytkownika o ID:" + id)
         );
         return new UserResponseDto(
                 user.getId(),

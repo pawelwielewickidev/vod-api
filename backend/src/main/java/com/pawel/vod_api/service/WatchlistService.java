@@ -1,6 +1,8 @@
 package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.WatchlistResponseDto;
+import com.pawel.vod_api.exception.DuplicateResourceException;
+import com.pawel.vod_api.exception.ResourceNotFoundException;
 import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.model.Profile;
 import com.pawel.vod_api.model.User;
@@ -22,15 +24,15 @@ public class WatchlistService {
 
     public WatchlistResponseDto addToWatchlist(Long userId, Long profileId, Long movieId){
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new RuntimeException("Nie znaleziono użytkownika o ID:" + userId));
+                .orElseThrow(()-> new ResourceNotFoundException("Nie znaleziono użytkownika o ID:" + userId));
         Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(()-> new RuntimeException("Nie znaleziono filmu o ID:" + movieId));
+                .orElseThrow(()-> new ResourceNotFoundException("Nie znaleziono filmu o ID:" + movieId));
         Profile profile = user.getProfiles().stream()
                 .filter(p -> p.getId().equals(profileId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu"));
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono profilu"));
         if (profile.getWatchlists().stream().anyMatch(watchlist -> watchlist.getMovie().equals(movie))){
-            throw new RuntimeException("Film znajduje się juz na liście");
+            throw new DuplicateResourceException("Film znajduje się juz na liście");
         }
         Watchlist newMovie = new Watchlist();
         newMovie.setMovie(movie);
@@ -42,12 +44,12 @@ public class WatchlistService {
 
     public List<WatchlistResponseDto> getWatchlist(Long userId, Long profileId){
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono użytkownika o ID:" + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono użytkownika o ID:" + userId));
 
         Profile profile = user.getProfiles().stream()
                 .filter(p -> p.getId().equals(profileId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu"));
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono profilu"));
 
         return profile.getWatchlists().stream()
                 .map(watchlist -> new WatchlistResponseDto(watchlist.getId(), watchlist.getProfile().getProfileName(), watchlist.getMovie().getTitle()
@@ -57,16 +59,16 @@ public class WatchlistService {
 
     public void removeMovieFromWatchlist (Long userId, Long profileId, Long movieId){
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new RuntimeException("Nie znaleziono użytkownika o ID:" + userId));
+                .orElseThrow(()-> new ResourceNotFoundException("Nie znaleziono użytkownika o ID:" + userId));
         Profile profile = user.getProfiles().stream()
                 .filter(p -> p.getId().equals(profileId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu"));
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono profilu"));
 
         Watchlist watchlist = profile.getWatchlists().stream()
                         .filter(m -> m.getMovie().getId().equals(movieId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono filmu"));
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono filmu"));
         profile.getWatchlists().remove(watchlist);
 
         userRepository.save(user);

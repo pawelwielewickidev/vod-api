@@ -2,6 +2,7 @@ package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
+import com.pawel.vod_api.exception.ResourceNotFoundException;
 import com.pawel.vod_api.model.Category;
 import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.repository.CategoryRepository;
@@ -38,7 +39,7 @@ public class MovieService {
     }
     public MovieResponseDto saveMovie(MovieDto movieDto){
         Category findCategory = categoryRepository.findById(movieDto.getCategoryId()).orElseThrow(
-                () -> new RuntimeException("Brak kategorii o ID:" + movieDto.getCategoryId())
+                () -> new ResourceNotFoundException("Brak kategorii o ID:" + movieDto.getCategoryId())
         );
 
         Movie movie = new Movie();
@@ -61,7 +62,7 @@ public class MovieService {
     }
     public MovieResponseDto getMovieById(Long id){
         Movie movie = movieRepository.findById(id).orElseThrow(
-                ()-> new RuntimeException("Brak filmu o ID:" + id)
+                ()-> new ResourceNotFoundException("Brak filmu o ID:" + id)
         );
         return new MovieResponseDto(
                 movie.getId(),
