@@ -72,7 +72,8 @@ Here are the main endpoints available in the API:
 * `GET /api/movies?categoryId={categoryId}` - Retrieve all available movies in selected category.
 
 **Watchlists**
-* `POST /api/users/{userId}/profiles/{profileId}/movies/{movieId}` - (Work in progress) Add a movie to a profile's watchlist.
+* `POST /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Add a movie to a profile's watchlist.
+* `GET /api/users/{userId}/profiles/{profileId}/watchlists - Retrieve all movies in profile's watchlist.
 
 ---
 *Created by Pawel Wielewicki - Feel free to contact me!*
