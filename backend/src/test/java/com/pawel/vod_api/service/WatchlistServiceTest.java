@@ -14,7 +14,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,6 +53,32 @@ public class WatchlistServiceTest {
         Mockito.when(movieRepository.findById(1L)).thenReturn(Optional.of(testMovie));
 
         assertThrows(RuntimeException.class, ()-> watchlistService.addToWatchlist(111L, 10L, 1L));
+
+    }
+    @Test
+    void shouldDeleteMovieFromWatchlist() throws Exception{
+        Movie movie = new Movie();
+        movie.setId(1L);
+
+        Watchlist watchlist = new Watchlist();
+        watchlist.setMovie(movie);
+
+        Profile  profile = new Profile();
+        profile.setId(10L);
+        profile.setWatchlists(new ArrayList<>(List.of(watchlist)));
+
+        User user = new User();
+        user.setId(1L);
+        user.setProfiles(List.of(profile));
+
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        watchlistService.removeMovieFromWatchlist(user.getId(), profile.getId(), movie.getId());
+
+        assertTrue(profile.getWatchlists().isEmpty());
+
+        Mockito.verify(userRepository, Mockito.times(1)).save(user);
+
 
     }
 }
