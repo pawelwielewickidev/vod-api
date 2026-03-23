@@ -3,6 +3,7 @@ package com.pawel.vod_api.controller;
 import com.pawel.vod_api.dto.ProfileDto;
 import com.pawel.vod_api.dto.ProfileResponseDto;
 import com.pawel.vod_api.service.ProfileService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,7 @@ public class ProfileController {
     private final ProfileService profileService;
 
     @PostMapping("/{userId}/profiles")
-    public ResponseEntity<ProfileResponseDto> createNewProfile(@PathVariable Long userId,@RequestBody ProfileDto profileDto){
+    public ResponseEntity<ProfileResponseDto> createNewProfile(@PathVariable Long userId,@Valid @RequestBody ProfileDto profileDto){
         ProfileResponseDto response = profileService.createProfile(userId, profileDto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

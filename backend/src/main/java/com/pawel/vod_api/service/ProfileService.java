@@ -2,6 +2,8 @@ package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.ProfileDto;
 import com.pawel.vod_api.dto.ProfileResponseDto;
+import com.pawel.vod_api.exception.ProfileLimitExceededException;
+import com.pawel.vod_api.exception.ResourceNotFoundException;
 import com.pawel.vod_api.model.Profile;
 import com.pawel.vod_api.model.User;
 import com.pawel.vod_api.repository.UserRepository;
@@ -18,9 +20,9 @@ public class ProfileService {
     private final UserRepository userRepository;
 
     public ProfileResponseDto createProfile(Long userId, ProfileDto profileDto){
-       User user = userRepository.findById(userId).orElseThrow(()-> new RuntimeException("Brak użytkownika o ID:" + userId));
+       User user = userRepository.findById(userId).orElseThrow(()-> new ResourceNotFoundException("Brak użytkownika o ID:" + userId));
        if (user.getProfiles().size() >= 5){
-           throw new RuntimeException("Osiągnięto maksymalną liczbę profili (5)");
+           throw new ProfileLimitExceededException("Osiągnięto maksymalną liczbę profili (5)");
        }
         Profile profile = new Profile();
        profile.setProfileName(profileDto.getProfileName());
@@ -34,7 +36,7 @@ public class ProfileService {
        }
     public List<ProfileResponseDto> getAllProfiles(Long userId){
         User user = userRepository.findById(userId).orElseThrow(
-                ()-> new RuntimeException("Brak użytkownika o ID:" + userId)
+                ()-> new ResourceNotFoundException("Brak użytkownika o ID:" + userId)
         );
         List<Profile> profilesFromDb = user.getProfiles();
 
