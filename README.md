@@ -4,8 +4,8 @@
 
 This project is under active development. The core architecture and user/profile management are complete. Here is what's coming next:
 
-* **[In progress] Global Exception Handling:** Implementing `@ControllerAdvice` for cleaner, standardized API error responses.
-* **[Planned] Data Validation:** Adding strict validation rules (`@Valid`, `@NotBlank`) for incoming JSON payloads.
+* **[In progress] Data Validation:** Adding strict validation rules (`@Valid`, `@NotBlank`) for incoming JSON payloads.
+* **[Planned] Video Streaming:** Implementation of `HTTP 206 Partial Content` for efficient, chunk-based video delivery. This will enable smooth playback, dynamic seeking, and significant bandwidth optimization.
 * **[Planned] Spring Security:** Securing endpoints with JWT authentication and role-based access control (Admin vs User).
 
 A robust and scalable RESTful API built for a Video-On-Demand (VOD) platform. Designed with clean architecture principles, this project manages user accounts, multi-profile systems (similar to Netflix), and personal watchlists.
