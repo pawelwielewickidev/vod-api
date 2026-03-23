@@ -2,6 +2,10 @@ package com.pawel.vod_api.controller;
 
 import com.pawel.vod_api.dto.*;
 import com.pawel.vod_api.model.Movie;
+import com.pawel.vod_api.model.Profile;
+import com.pawel.vod_api.model.User;
+import com.pawel.vod_api.model.Watchlist;
+import com.pawel.vod_api.repository.UserRepository;
 import com.pawel.vod_api.service.WatchlistService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -10,10 +14,16 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,6 +37,8 @@ public class WatchlistControllerTest {
     private WatchlistService watchlistService;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockitoBean
+    private UserRepository userRepository;
 
     @Test
     void shouldAddMovieToWatchlist() throws Exception{
@@ -75,5 +87,16 @@ public class WatchlistControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].profileName").value("Test Profile"))
                 .andExpect(jsonPath("$[0].movieTitle").value("Test Movie"));
+    }
+    @Test
+    void shouldReturn204AndDeleteFromWatchlist() throws Exception{
+        Long userId = 1L;
+        Long profileId = 1L;
+        Long movieId = 1L;
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/1/profiles/1/watchlists/1"))
+                .andExpect(status().isNoContent());
+        Mockito.verify(watchlistService, Mockito.times(1))
+                .removeMovieFromWatchlist(userId, profileId, movieId);
     }
 }

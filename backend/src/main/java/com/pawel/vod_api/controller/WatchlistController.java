@@ -29,4 +29,11 @@ public class WatchlistController {
     public List<WatchlistResponseDto> getWatchlists(@PathVariable Long userId, @PathVariable Long profileId) {
         return watchlistService.getWatchlist(userId, profileId);
     }
+
+    @DeleteMapping("/watchlists/{movieId}")
+    public ResponseEntity<WatchlistResponseDto> deleteMovieFromWatchlist(
+            @PathVariable Long userId, @PathVariable Long profileId, @PathVariable Long movieId) {
+        watchlistService.removeMovieFromWatchlist(userId, profileId, movieId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

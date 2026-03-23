@@ -54,4 +54,21 @@ public class WatchlistService {
                 ))
                 .toList();
     }
+
+    public void removeMovieFromWatchlist (Long userId, Long profileId, Long movieId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new RuntimeException("Nie znaleziono użytkownika o ID:" + userId));
+        Profile profile = user.getProfiles().stream()
+                .filter(p -> p.getId().equals(profileId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu"));
+
+        Watchlist watchlist = profile.getWatchlists().stream()
+                        .filter(m -> m.getMovie().getId().equals(movieId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono filmu"));
+        profile.getWatchlists().remove(watchlist);
+
+        userRepository.save(user);
+    }
 }
