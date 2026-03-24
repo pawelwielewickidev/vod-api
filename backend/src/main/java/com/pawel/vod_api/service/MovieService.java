@@ -8,9 +8,20 @@ import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.repository.CategoryRepository;
 import com.pawel.vod_api.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +29,47 @@ import java.util.stream.Collectors;
 public class MovieService {
     private final MovieRepository movieRepository;
     private final CategoryRepository categoryRepository;
+    private final String UPLOAD_DIR = "media/";
+
+    public void uploadVideoPath(Long movieId, MultipartFile file) {
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
+
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Plik wideo nie może być pusty.");
+        }
+
+        try {
+            Path directoryPath = Paths.get(UPLOAD_DIR);
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectories(directoryPath);
+            }
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            Path filePath = Paths.get(directoryPath.toString(), uniqueFileName);
+
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            movie.setVideoFilePath(filePath.toString());
+            movieRepository.save(movie);
+        } catch (IOException e) {
+            throw new RuntimeException("Nie udało się zapisać pliku wideo: " + e.getMessage());
+        }
+    }
+
+    public Resource getVideoResource(Long movieId) {
+        Movie movie = movieRepository.findById(movieId).
+                orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
+
+        String videoPath = movie.getVideoFilePath();
+        if(videoPath == null){
+            throw new ResourceNotFoundException("Ten film nie ma przypisanego pliku wideo");
+        }
+        Resource videoResource = new FileSystemResource(videoPath);
+        if (!videoResource.exists()) {
+            throw new ResourceNotFoundException("Plik nie istnieje");
+        }
+        return videoResource;
+    }
 
     public List<MovieResponseDto> getAllMovies(){
 
@@ -28,13 +80,23 @@ public class MovieService {
                 .collect(Collectors.toList());
     }
     private MovieResponseDto mapToDto(Movie movie){
+
+        String generatedStreamUrl = null;
+        if (movie.getVideoFilePath() != null && !movie.getVideoFilePath().isEmpty()) {
+            generatedStreamUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/movies/")
+                    .path(movie.getId().toString())
+                    .path("/stream")
+                    .toUriString();
+        }
         return new MovieResponseDto(
                 movie.getId(),
                 movie.getTitle(),
                 movie.getDescription(),
                 movie.getReleaseDate(),
                 movie.getThumbnailUrl(),
-                movie.getCategory().getName()
+                movie.getCategory().getName(),
+                generatedStreamUrl
         );
     }
     public MovieResponseDto saveMovie(MovieDto movieDto){
@@ -57,7 +119,8 @@ public class MovieService {
                 savedMovie.getDescription(),
                 savedMovie.getReleaseDate(),
                 savedMovie.getThumbnailUrl(),
-                savedMovie.getCategory().getName()
+                savedMovie.getCategory().getName(),
+                savedMovie.getVideoFilePath()
         );
     }
     public MovieResponseDto getMovieById(Long id){
@@ -70,7 +133,8 @@ public class MovieService {
                 movie.getDescription(),
                 movie.getReleaseDate(),
                 movie.getThumbnailUrl(),
-                movie.getCategory().getName()
+                movie.getCategory().getName(),
+                movie.getVideoFilePath()
         );
     }
     public List<MovieResponseDto> getMoviesByCategory(Long categoryId){
@@ -81,7 +145,8 @@ public class MovieService {
                         movie.getDescription(),
                         movie.getReleaseDate(),
                         movie.getThumbnailUrl(),
-                        movie.getCategory().getName()
+                        movie.getCategory().getName(),
+                        movie.getVideoFilePath()
                 ))
                 .toList();
     }

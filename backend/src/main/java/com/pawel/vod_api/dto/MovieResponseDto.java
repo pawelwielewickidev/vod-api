@@ -14,4 +14,6 @@ public class MovieResponseDto {
     private Integer releaseDate;
     private String thumbnailUrl;
     private String categoryName;
+    private String streamUrl;
+
 }
