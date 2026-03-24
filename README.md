@@ -1,12 +1,12 @@
-# 🎬 VOD Platform API (Netflix Clone Backend)
+# 🎬 Video Handling and Streaming (Video on Demand)
 
 ## 🚧 Work In Progress / Roadmap
 
 This project is under active development. The core architecture and user/profile management are complete. Here is what's coming next:
 
-* **[In progress] Data Validation:** Adding strict validation rules (`@Valid`, `@NotBlank`) for incoming JSON payloads.
-* **[Planned] Video Streaming:** Implementation of `HTTP 206 Partial Content` for efficient, chunk-based video delivery. This will enable smooth playback, dynamic seeking, and significant bandwidth optimization.
+* **[In progress] Global Exception Handler (Polishing):** Adding elegant error handling (returning a `400 Bad Request` in a readable JSON) for edge cases, such as attempting to upload an empty video file (`IllegalArgumentException`).
 * **[Planned] Spring Security:** Securing endpoints with JWT authentication and role-based access control (Admin vs User).
+* **[Planned] Rating and Review System:** Designing and implementing the logic that allows users to rate movies (on a 1-5 scale) and leave comments under them.
 
 A robust and scalable RESTful API built for a Video-On-Demand (VOD) platform. Designed with clean architecture principles, this project manages user accounts, multi-profile systems (similar to Netflix), and personal watchlists.
 
@@ -69,6 +69,14 @@ Here are the main endpoints available in the API:
 * `POST /api/movies` - Add a new movie to the catalog (requires a valid category ID).
 * `GET /api/movies` - Retrieve all available movies in the database.
 * `GET /api/movies?categoryId={categoryId}` - Retrieve all available movies in selected category.
+* `PATCH /api/movies/{movieId}/video` - Uploading a video file for an existing movie:
+  * Request Type: `multipart/form-data`
+  * Parameter: `file` (video file, e.g., `.mp4`)
+  * Response: `204 No Content` upon successful save. Files are securely isolated in the `/media/` directory on the server.
+* `GET /api/movies/{movieId}/stream` - On-the-fly video streaming:
+  * Headers: Supports client requests with the `Range` header (e.g., `bytes=0-50000`).
+  * Response: `206 Partial Content` with the requested file chunk.
+* `GET /api/movies/{movieId}` - Fetching movie details.
 
 **Watchlists**
 * `POST /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Add a movie to a profile's watchlist.
