@@ -15,6 +15,10 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponseDto createUser(UserDto userDto){
+
+        if(userRepository.existsByEmail(userDto.getEmail())){
+            throw new ResourceNotFoundException("Użytkownik z tym adresem email już istnieje.");
+        }
         User user = new User();
         user.setEmail(userDto.getEmail());
         user.setPassword(userDto.getPassword());
