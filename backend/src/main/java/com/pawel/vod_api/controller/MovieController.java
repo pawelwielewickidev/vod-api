@@ -5,8 +5,11 @@ import com.pawel.vod_api.dto.MovieResponseDto;
 import com.pawel.vod_api.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,5 +39,19 @@ public class MovieController {
         MovieResponseDto response = movieService.saveMovie(movieDto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping(value = "/movies/{movieId}/stream", produces = "video/mp4")
+    public ResponseEntity<Resource> streamMovie(@PathVariable Long movieId){
+        Resource video = movieService.getVideoResource(movieId);
+
+        return ResponseEntity.ok(video);
+    }
+
+    @PatchMapping(value = "/movies/{movieId}/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadVideo(@PathVariable Long movieId, @RequestParam("file") MultipartFile file){
+        movieService.uploadVideoPath(movieId, file);
+
+        return ResponseEntity.noContent().build();
     }
 }
