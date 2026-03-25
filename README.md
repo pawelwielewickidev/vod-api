@@ -67,7 +67,6 @@ Here are the main endpoints available in the API:
 
 **Movies**
 * `POST /api/movies` - Add a new movie to the catalog (requires a valid category ID).
-* `GET /api/movies` - Retrieve all available movies in the database.
 * `GET /api/movies?categoryId={categoryId}` - Retrieve all available movies in selected category.
 * `PATCH /api/movies/{movieId}/video` - Uploading a video file for an existing movie:
   * Request Type: `multipart/form-data`
@@ -77,6 +76,12 @@ Here are the main endpoints available in the API:
   * Headers: Supports client requests with the `Range` header (e.g., `bytes=0-50000`).
   * Response: `206 Partial Content` with the requested file chunk.
 * `GET /api/movies/{movieId}` - Fetching movie details.
+* `PATCH /api/movies/{movieId}/poster` - Uploading a poster/thumbnail image for an existing movie:
+  * Request Type: `multipart/form-data`
+  * Parameter: `file` (image file, e.g., `.jpg`, `.png`)
+  * Response: `204 No Content` upon successful save. Files are securely isolated in the `/media/posters/` directory.
+* `GET /api/movies/{movieId}/poster` - Serving the poster image directly to the browser.
+* `GET /api/movies/{movieId}` - Fetching movie details (dynamically includes `streamUrl` and `posterUrl` if files exist on the server).
 
 **Watchlists**
 * `POST /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Add a movie to a profile's watchlist.
