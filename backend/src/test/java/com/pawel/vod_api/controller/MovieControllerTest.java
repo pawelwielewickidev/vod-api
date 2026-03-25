@@ -125,7 +125,8 @@ public class MovieControllerTest {
     @Test
     void shouldUploadVideoFileAndReturn204NoContent() throws Exception{
         Long movieId = 1L;
-        MockMultipartFile mockFile = new MockMultipartFile("file", "testmovie", "video/mp4", "content".getBytes());
+        MockMultipartFile mockFile = new MockMultipartFile(
+                "file", "testmovie", "video/mp4", "content".getBytes());
 
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/movies/{movieId}/video", movieId)
                 .file(mockFile)
@@ -136,5 +137,23 @@ public class MovieControllerTest {
                 }))
                 .andExpect(status().isNoContent());
         Mockito.verify(movieService, Mockito.times(1)).uploadVideoPath(movieId, mockFile);
+    }
+
+    @Test
+    void shouldUploadPosterFileAndReturn204NoContent() throws Exception{
+        Long movieId = 1L;
+        MockMultipartFile mockFile = new MockMultipartFile(
+                "file", "okladka", MediaType.IMAGE_JPEG_VALUE, "content".getBytes());
+
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/movies/{movieId}/poster", movieId)
+                .file(mockFile)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .with(request ->  {
+                    request.setMethod(HttpMethod.PATCH.name());
+                    return request;
+        }))
+                .andExpect(status().isNoContent());
+        Mockito.verify(movieService, Mockito.times(1)).uploadThumbnailPath(movieId, mockFile);
+
     }
 }
