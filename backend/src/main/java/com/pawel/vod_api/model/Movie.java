@@ -25,7 +25,7 @@ public class Movie {
     @Column(length = 1000)
     private String description;
     private Integer releaseDate;
-    private String thumbnailUrl;
+    private String thumbnailPath;
     private String videoFilePath;
 
     @ManyToOne(fetch = FetchType.LAZY)

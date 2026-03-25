@@ -48,9 +48,23 @@ public class MovieController {
         return ResponseEntity.ok(video);
     }
 
+    @GetMapping(value = "/movies/{movieId}/poster", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<Resource> getPoster(@PathVariable Long movieId){
+        Resource poster = movieService.getPosterResource(movieId);
+        return ResponseEntity.ok(poster);
+    }
+
     @PatchMapping(value = "/movies/{movieId}/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadVideo(@PathVariable Long movieId, @RequestParam("file") MultipartFile file){
         movieService.uploadVideoPath(movieId, file);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/movies/{movieId}/poster", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadThumbnail(
+            @PathVariable Long movieId, @RequestParam("file") MultipartFile file){
+        movieService.uploadThumbnailPath(movieId, file);
 
         return ResponseEntity.noContent().build();
     }

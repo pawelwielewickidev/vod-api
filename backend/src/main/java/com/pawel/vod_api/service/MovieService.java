@@ -31,6 +31,44 @@ public class MovieService {
     private final CategoryRepository categoryRepository;
     private final String UPLOAD_DIR = "media/";
 
+    public void uploadThumbnailPath(Long movieId, MultipartFile file) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                () -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
+
+        if(file.isEmpty()) {
+            throw new IllegalArgumentException("Plik okładki nie może być pusty.");
+        }
+        try {
+            Path postersDir = Path.of("media", "posters");
+            if (!Files.exists(postersDir)) {
+                Files.createDirectories(postersDir);
+            }
+            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            Path filePath = postersDir.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            movie.setThumbnailPath(filePath.toString());
+            movieRepository.save(movie);
+        } catch (IOException e) {
+            throw new RuntimeException("Błąd podczas zapisywania okładki na serwerze", e);
+        }
+    }
+
+    public Resource getPosterResource(Long movieId) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                ()-> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId)
+        );
+        String posterPath = movie.getThumbnailPath();
+        if(posterPath == null) {
+            throw new ResourceNotFoundException("Ten film nie ma przypisanego pliku okładki.");
+        }
+        Resource posterResource = new FileSystemResource(posterPath);
+        if(!posterResource.exists()) {
+            throw new ResourceNotFoundException("Plik nie istnieje.");
+        }
+        return posterResource;
+    }
+
     public void uploadVideoPath(Long movieId, MultipartFile file) {
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
@@ -82,6 +120,7 @@ public class MovieService {
     private MovieResponseDto mapToDto(Movie movie){
 
         String generatedStreamUrl = null;
+
         if (movie.getVideoFilePath() != null && !movie.getVideoFilePath().isEmpty()) {
             generatedStreamUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/movies/")
@@ -89,12 +128,21 @@ public class MovieService {
                     .path("/stream")
                     .toUriString();
         }
+        String generatedThumbnailUrl = null;
+
+        if (movie.getThumbnailPath() != null && !movie.getThumbnailPath().isEmpty()) {
+            generatedThumbnailUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/movies/")
+                    .path(movie.getId().toString())
+                    .path("/poster")
+                    .toUriString();
+        }
         return new MovieResponseDto(
                 movie.getId(),
                 movie.getTitle(),
                 movie.getDescription(),
                 movie.getReleaseDate(),
-                movie.getThumbnailUrl(),
+                generatedThumbnailUrl,
                 movie.getCategory().getName(),
                 generatedStreamUrl
         );
@@ -108,7 +156,7 @@ public class MovieService {
         movie.setTitle(movieDto.getTitle());
         movie.setDescription(movieDto.getDescription());
         movie.setReleaseDate(movieDto.getReleaseDate());
-        movie.setThumbnailUrl(movieDto.getThumbnailUrl());
+        movie.setThumbnailPath(movieDto.getThumbnailPath());
         movie.setCategory(findCategory);
 
         Movie savedMovie = movieRepository.save(movie);
@@ -118,7 +166,7 @@ public class MovieService {
                 savedMovie.getTitle(),
                 savedMovie.getDescription(),
                 savedMovie.getReleaseDate(),
-                savedMovie.getThumbnailUrl(),
+                savedMovie.getThumbnailPath(),
                 savedMovie.getCategory().getName(),
                 savedMovie.getVideoFilePath()
         );
@@ -132,7 +180,7 @@ public class MovieService {
                 movie.getTitle(),
                 movie.getDescription(),
                 movie.getReleaseDate(),
-                movie.getThumbnailUrl(),
+                movie.getThumbnailPath(),
                 movie.getCategory().getName(),
                 movie.getVideoFilePath()
         );
@@ -144,7 +192,7 @@ public class MovieService {
                         movie.getTitle(),
                         movie.getDescription(),
                         movie.getReleaseDate(),
-                        movie.getThumbnailUrl(),
+                        movie.getThumbnailPath(),
                         movie.getCategory().getName(),
                         movie.getVideoFilePath()
                 ))
