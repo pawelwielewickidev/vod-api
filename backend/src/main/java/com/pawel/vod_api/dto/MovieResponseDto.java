@@ -13,6 +13,7 @@ public class MovieResponseDto {
     private String description;
     private Integer releaseDate;
     private String thumbnailUrl;
+    private String backgroundUrl;
     private String categoryName;
     private String streamUrl;
 

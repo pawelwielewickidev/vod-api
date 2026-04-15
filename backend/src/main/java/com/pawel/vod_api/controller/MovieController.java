@@ -68,4 +68,19 @@ public class MovieController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping(value = "/movies/{movieId}/bg", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadBackground
+            (@PathVariable Long movieId, @RequestParam("file") MultipartFile file){
+        movieService.uploadBackgroundPath(movieId, file);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/movies/{movieId}/bg", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<Resource> getBackground
+            (@PathVariable Long movieId){
+        Resource background = movieService.getBackgroundResource(movieId);
+        return ResponseEntity.ok(background);
+    }
 }
