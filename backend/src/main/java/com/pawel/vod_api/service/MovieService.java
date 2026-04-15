@@ -130,11 +130,20 @@ public class MovieService {
         }
         String generatedThumbnailUrl = null;
 
+
         if (movie.getThumbnailPath() != null && !movie.getThumbnailPath().isEmpty()) {
             generatedThumbnailUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/movies/")
                     .path(movie.getId().toString())
                     .path("/poster")
+                    .toUriString();
+        }
+        String generatedBackgroundUrl = null;
+        if (movie.getBackgroundPath() != null && !movie.getBackgroundPath().isEmpty()) {
+            generatedBackgroundUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/movies/")
+                    .path(movie.getId().toString())
+                    .path("/bg")
                     .toUriString();
         }
         return new MovieResponseDto(
@@ -143,9 +152,12 @@ public class MovieService {
                 movie.getDescription(),
                 movie.getReleaseDate(),
                 generatedThumbnailUrl,
+                generatedBackgroundUrl,
                 movie.getCategory().getName(),
                 generatedStreamUrl
         );
+
+
     }
     public MovieResponseDto saveMovie(MovieDto movieDto){
         Category findCategory = categoryRepository.findById(movieDto.getCategoryId()).orElseThrow(
@@ -157,6 +169,7 @@ public class MovieService {
         movie.setDescription(movieDto.getDescription());
         movie.setReleaseDate(movieDto.getReleaseDate());
         movie.setThumbnailPath(movieDto.getThumbnailPath());
+        movie.setBackgroundPath(movieDto.getBackgroundPath());
         movie.setCategory(findCategory);
 
         Movie savedMovie = movieRepository.save(movie);
@@ -167,6 +180,7 @@ public class MovieService {
                 savedMovie.getDescription(),
                 savedMovie.getReleaseDate(),
                 savedMovie.getThumbnailPath(),
+                savedMovie.getBackgroundPath(),
                 savedMovie.getCategory().getName(),
                 savedMovie.getVideoFilePath()
         );
@@ -181,6 +195,7 @@ public class MovieService {
                 movie.getDescription(),
                 movie.getReleaseDate(),
                 movie.getThumbnailPath(),
+                movie.getBackgroundPath(),
                 movie.getCategory().getName(),
                 movie.getVideoFilePath()
         );
@@ -193,9 +208,48 @@ public class MovieService {
                         movie.getDescription(),
                         movie.getReleaseDate(),
                         movie.getThumbnailPath(),
+                        movie.getBackgroundPath(),
                         movie.getCategory().getName(),
                         movie.getVideoFilePath()
                 ))
                 .toList();
+    }
+
+    public void uploadBackgroundPath(Long movieId, MultipartFile file) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                () -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
+
+        if(file.isEmpty()) {
+            throw new IllegalArgumentException("Plik tła nie może być pusty.");
+        }
+        try {
+            Path bgDir = Path.of("media", "background");
+            if (!Files.exists(bgDir)) {
+                Files.createDirectories(bgDir);
+            }
+            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            Path filePath = bgDir.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            movie.setBackgroundPath(filePath.toString());
+            movieRepository.save(movie);
+        } catch (IOException e) {
+            throw new RuntimeException("Błąd podczas zapisywania tła na serwerze", e);
+        }
+    }
+
+    public Resource getBackgroundResource(Long movieId) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                ()-> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId)
+        );
+        String bgPath = movie.getBackgroundPath();
+        if(bgPath == null) {
+            throw new ResourceNotFoundException("Ten film nie ma przypisanego pliku tła.");
+        }
+        Resource bgResource = new FileSystemResource(bgPath);
+        if(!bgResource.exists()) {
+            throw new ResourceNotFoundException("Plik nie istnieje.");
+        }
+        return bgResource;
     }
 }

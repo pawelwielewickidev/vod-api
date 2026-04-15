@@ -27,6 +27,7 @@ public class Movie {
     private Integer releaseDate;
     private String thumbnailPath;
     private String videoFilePath;
+    private String backgroundPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
