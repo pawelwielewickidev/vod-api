@@ -24,5 +24,5 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+        run: ./build.gradle build --no-daemon
         working-directory: ./backend
