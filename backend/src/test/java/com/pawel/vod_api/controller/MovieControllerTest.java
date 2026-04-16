@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.core.io.Resource;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +68,7 @@ public class MovieControllerTest {
 
         MovieResponseDto testMovie = new MovieResponseDto(
                 1L, "Test", "Description", 2019, "url","bgurl", "Category",
-        "streamUrl");
+                Collections.emptyList());
 
         Mockito.when(movieService.getAllMovies()).thenReturn(List.of(testMovie));
 
@@ -82,7 +83,7 @@ public class MovieControllerTest {
 
         CategoryResponseDto newCategory = new CategoryResponseDto(1L, "Action", "Opis");
         MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getId());
-        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getName(), "streamUrl");
+        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getName(), Collections.emptyList());
 
         Mockito.when(movieService.saveMovie(Mockito.any(MovieDto.class))).thenReturn(mockedResponse);
 
@@ -97,7 +98,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMovieByIdAnd200() throws Exception{
         MovieResponseDto movie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "test", "streamUrl");
+                1L, "test", "opis", 2000, "url", "bgurl", "test", Collections.emptyList());
 
 
         Mockito.when(movieService.getMovieById(1L)).thenReturn(movie);
@@ -110,7 +111,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMoviesByCategories() throws Exception{
         MovieResponseDto fantasyMovie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "fantasy", "streamUrl"
+                1L, "test", "opis", 2000, "url", "bgurl", "fantasy", Collections.emptyList()
         );
 
         Mockito.when(movieService.getMoviesByCategory(1L)).thenReturn(List.of(fantasyMovie));
