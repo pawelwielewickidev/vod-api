@@ -21,13 +21,10 @@ jobs:
           cache: gradle
 
 
-      - name: Prepare backend environment
-        run: |
-          cp gradlew backend/
-          cp -r gradle backend/
-          chmod +x backend/gradlew
-      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        working-directory: ./backend
 
       - name: Build with Gradle
-        working-directory: ./backend
         run: ./gradlew build --no-daemon
+        working-directory: ./backend
