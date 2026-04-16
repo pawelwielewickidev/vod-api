@@ -1,9 +1,11 @@
 package com.pawel.vod_api.service;
 
+import com.pawel.vod_api.dto.EpisodeResponseDto;
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
 import com.pawel.vod_api.exception.ResourceNotFoundException;
 import com.pawel.vod_api.model.Category;
+import com.pawel.vod_api.model.Episode;
 import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.repository.CategoryRepository;
 import com.pawel.vod_api.repository.MovieRepository;
@@ -20,9 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
@@ -115,46 +120,27 @@ public class MovieService {
 
         return moviesFromDb.stream()
                 .map(this::mapToDto)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
     private MovieResponseDto mapToDto(Movie movie){
 
-        String generatedStreamUrl = null;
 
-        if (movie.getVideoFilePath() != null && !movie.getVideoFilePath().isEmpty()) {
-            generatedStreamUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/movies/")
-                    .path(movie.getId().toString())
-                    .path("/stream")
-                    .toUriString();
-        }
-        String generatedThumbnailUrl = null;
-
-
-        if (movie.getThumbnailPath() != null && !movie.getThumbnailPath().isEmpty()) {
-            generatedThumbnailUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/movies/")
-                    .path(movie.getId().toString())
-                    .path("/poster")
-                    .toUriString();
-        }
-        String generatedBackgroundUrl = null;
-        if (movie.getBackgroundPath() != null && !movie.getBackgroundPath().isEmpty()) {
-            generatedBackgroundUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/movies/")
-                    .path(movie.getId().toString())
-                    .path("/bg")
-                    .toUriString();
-        }
         return new MovieResponseDto(
                 movie.getId(),
                 movie.getTitle(),
                 movie.getDescription(),
                 movie.getReleaseDate(),
-                generatedThumbnailUrl,
-                generatedBackgroundUrl,
+                movie.getThumbnailPath(),
+                movie.getBackgroundPath(),
                 movie.getCategory().getName(),
-                generatedStreamUrl
+                movie.getEpisodes() != null
+                        ? movie.getEpisodes().stream()
+                          .map(this::mapToEpisodeDto)
+
+                          .toList()
+                        : new ArrayList<>()
+
+
         );
 
 
@@ -182,7 +168,12 @@ public class MovieService {
                 savedMovie.getThumbnailPath(),
                 savedMovie.getBackgroundPath(),
                 savedMovie.getCategory().getName(),
-                savedMovie.getVideoFilePath()
+                movie.getEpisodes() != null
+                        ? movie.getEpisodes().stream()
+                          .map(this::mapToEpisodeDto)
+                          .toList()
+                        : new ArrayList<>()
+
         );
     }
     public MovieResponseDto getMovieById(Long id){
@@ -197,9 +188,22 @@ public class MovieService {
                 movie.getThumbnailPath(),
                 movie.getBackgroundPath(),
                 movie.getCategory().getName(),
-                movie.getVideoFilePath()
+                movie.getEpisodes() != null
+                        ? movie.getEpisodes().stream()
+                          .map(this::mapToEpisodeDto)
+                          .toList()
+                        : new ArrayList<>()
         );
+
     }
+
+    public void deleteMovie(Long id){
+        Movie movie = movieRepository.findById(id).orElseThrow(
+                ()-> new ResourceNotFoundException("Brak filmu o ID:" + id)
+        );
+        movieRepository.delete(movie);
+    }
+
     public List<MovieResponseDto> getMoviesByCategory(Long categoryId){
         return movieRepository.findMovieByCategoryId(categoryId).stream()
                 .map(movie -> new MovieResponseDto(
@@ -210,7 +214,11 @@ public class MovieService {
                         movie.getThumbnailPath(),
                         movie.getBackgroundPath(),
                         movie.getCategory().getName(),
-                        movie.getVideoFilePath()
+                        movie.getEpisodes() != null
+                                ? movie.getEpisodes().stream()
+                                  .map(this::mapToEpisodeDto)
+                                  .toList()
+                                : new ArrayList<>()
                 ))
                 .toList();
     }
@@ -251,5 +259,14 @@ public class MovieService {
             throw new ResourceNotFoundException("Plik nie istnieje.");
         }
         return bgResource;
+    }
+
+    private EpisodeResponseDto mapToEpisodeDto(Episode episode) {
+        return EpisodeResponseDto.builder()
+                .id(episode.getId())
+                .title(episode.getTitle())
+                .episodeNumber(episode.getEpisodeNumber())
+                .streamUrl("/api/episodes/" + episode.getId() + "/stream")
+                .build();
     }
 }

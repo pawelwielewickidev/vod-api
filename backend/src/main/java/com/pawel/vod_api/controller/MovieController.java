@@ -20,12 +20,8 @@ public class MovieController {
     private final MovieService movieService;
 
     @GetMapping("/movies")
-    public ResponseEntity<List<MovieResponseDto>> getAllMovies(@RequestParam(required = false)Long categoryId){
-        //all from categories
-        if (categoryId != null){
-            return ResponseEntity.ok(movieService.getMoviesByCategory(categoryId));
-        }
-        //all movies
+    public ResponseEntity<List<MovieResponseDto>> getAllMovies(){
+
         return ResponseEntity.ok(movieService.getAllMovies());
     }
 
@@ -82,5 +78,16 @@ public class MovieController {
             (@PathVariable Long movieId){
         Resource background = movieService.getBackgroundResource(movieId);
         return ResponseEntity.ok(background);
+    }
+
+    @GetMapping(value = "/movies/category/{categoryId}")
+    public ResponseEntity<List<MovieResponseDto>> getAllMoviesByCategory(@PathVariable Long categoryId){
+        return ResponseEntity.ok(movieService.getMoviesByCategory(categoryId));
+    }
+
+    @DeleteMapping(value = "/movies/{movieId}")
+    public ResponseEntity<Void> deleteMovie(@PathVariable Long movieId){
+        movieService.deleteMovie(movieId);
+        return ResponseEntity.noContent().build();
     }
 }

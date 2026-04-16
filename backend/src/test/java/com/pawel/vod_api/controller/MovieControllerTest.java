@@ -66,7 +66,7 @@ public class MovieControllerTest {
     void shouldReturnListOfMoviesAndStatus200() throws Exception{
 
         MovieResponseDto testMovie = new MovieResponseDto(
-                1L, "Test", "Description", 2019, "url", "Category",
+                1L, "Test", "Description", 2019, "url","bgurl", "Category",
         "streamUrl");
 
         Mockito.when(movieService.getAllMovies()).thenReturn(List.of(testMovie));
@@ -81,8 +81,8 @@ public class MovieControllerTest {
     void shouldCreateNewMovieAndStatus201() throws Exception{
 
         CategoryResponseDto newCategory = new CategoryResponseDto(1L, "Action", "Opis");
-        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", newCategory.getId());
-        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", newCategory.getName(), "streamUrl");
+        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getId());
+        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getName(), "streamUrl");
 
         Mockito.when(movieService.saveMovie(Mockito.any(MovieDto.class))).thenReturn(mockedResponse);
 
@@ -97,7 +97,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMovieByIdAnd200() throws Exception{
         MovieResponseDto movie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "test", "streamUrl");
+                1L, "test", "opis", 2000, "url", "bgurl", "test", "streamUrl");
 
 
         Mockito.when(movieService.getMovieById(1L)).thenReturn(movie);
@@ -110,7 +110,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMoviesByCategories() throws Exception{
         MovieResponseDto fantasyMovie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "fantasy", "streamUrl"
+                1L, "test", "opis", 2000, "url", "bgurl", "fantasy", "streamUrl"
         );
 
         Mockito.when(movieService.getMoviesByCategory(1L)).thenReturn(List.of(fantasyMovie));
