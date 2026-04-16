@@ -3,8 +3,7 @@
 ## 🚧 Work In Progress / Roadmap
 
 This project is under active development. The core architecture and user/profile management are complete. Here is what's coming next:
-
-* **[In progress] Global Exception Handler (Polishing):** Adding elegant error handling (returning a `400 Bad Request` in a readable JSON) for edge cases, such as attempting to upload an empty video file (`IllegalArgumentException`).
+* **[In Progress] React based UI**
 * **[Planned] Spring Security:** Securing endpoints with JWT authentication and role-based access control (Admin vs User).
 * **[Planned] Rating and Review System:** Designing and implementing the logic that allows users to rate movies (on a 1-5 scale) and leave comments under them.
 
@@ -88,5 +87,8 @@ Here are the main endpoints available in the API:
 * `GET /api/users/{userId}/profiles/{profileId}/watchlists` - Retrieve all movies in profile's watchlist.
 * `DELETE /api/users/{userId}/profiles/{profileId}/watchlists/{movieId}` - Removing the movie from watchlist.
 
+**Episodes**
+* `GET /api/episodes/{id}/stream` - to handle byte-range streaming for video/mp4 files.
+* `POST /api/episodes` - to facilitate adding new episodes to the database (e.g., via Postman).
 ---
 *Created by Pawel Wielewicki - Feel free to contact me!*
