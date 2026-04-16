@@ -36,4 +36,7 @@ public class Movie {
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL)
     private List<Watchlist> watchlistedByProfile = new ArrayList<>();
 
+    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Episode> episodes = new ArrayList<>();
+
 }

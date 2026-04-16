@@ -6,16 +6,31 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("🚀 Hero zaczyna pobierać dane...");
+
     fetch("http://localhost:8080/api/movies")
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Błąd HTTP: ${response.status}`);
+        return response.json();
+      })
       .then((data) => {
-        if (data && data.length > 0) {
-          setMovies(data.slice(3, 5));
+        if (Array.isArray(data) && data.length > 0) {
+          console.log(
+            `✅ Znaleziono ${data.length} filmów. Ustawiam karuzelę.`,
+          );
+
+          let shuffled = [...data];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+
+          setMovies(shuffled.slice(0, 5));
         }
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error("Failed to load Hero from backend:", error);
+        console.error("❌ Błąd krytyczny w Hero:", error);
         setIsLoading(false);
       });
   }, []);
@@ -60,7 +75,7 @@ export default function HeroSection() {
         <img
           key={currentMovie.id}
           src={
-            currentMovie.backgroundUrl ||
+            `http://localhost:8080/api/movies/${currentMovie.id}/bg` ||
             currentMovie.posterUrl ||
             "https://images.alphacoders.com/133/1331511.jpeg"
           }
