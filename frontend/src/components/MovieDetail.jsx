@@ -1,6 +1,7 @@
 import { act, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Star, Play, Bookmark, Plus, Share2 } from "lucide-react";
+import CustomPlayer from "./CustomPlayer";
 
 export default function MovieDetail() {
   const { id } = useParams();
@@ -63,7 +64,7 @@ export default function MovieDetail() {
             to="/"
             className="inline-flex items-center gap-2 text-neutral-400 hover:text-white mb-8 transition-colors"
           >
-            <ChevronLeft size={20} /> Wróć do katalogu
+            <ChevronLeft size={20} /> Back to main page
           </Link>
 
           <h1 className="text-5xl md:text-7xl font-bold uppercase mb-4 tracking-tighter">
@@ -76,7 +77,7 @@ export default function MovieDetail() {
                 <Star key={i} size={18} fill="currentColor" />
               ))}
             </div>
-            <span className="text-sm font-bold">4.8 (2.5k głosów)</span>
+            <span className="text-sm font-bold">4.8 (2.5k votes)</span>
             <span className="bg-neutral-800 px-2 py-0.5 rounded text-xs">
               HD
             </span>
@@ -96,14 +97,14 @@ export default function MovieDetail() {
                   alert("Ten film nie ma jeszcze odcinków w bazie!");
                 }
               }}
-              className="bg-crunchy hover:bg-crunchy-dark text-neutral-300 px-10 py-4 rounded font-bold flex items-center gap-2 transition-transform hover:scale-105"
+              className="h-12 flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-neutral-100 px-6 py-3 font-bold rounded-xs transition-colors duration-200"
             >
-              <Play fill="currentColor" /> OGLĄDAJ
+              <Play fill="currentColor" /> START WATCHING
             </button>
-            <button className="p-4 border border-neutral-300 hover:bg-neutral-500 rounded transition-colors">
-              <Plus />
+            <button className="h-12 w-12 p-3 border border-neutral-300 hover:bg-neutral-500 rounded-xs transition-colors">
+              <Bookmark />
             </button>
-            <button className="p-4 border border-neutral-300 hover:bg-neutral-500 rounded transition-colors">
+            <button className="h-12 w-12 p-3 border border-neutral-300 hover:bg-neutral-500 rounded-xs transition-colors">
               <Share2 size={20} />
             </button>
           </div>
@@ -113,34 +114,19 @@ export default function MovieDetail() {
       {activeEpisode && (
         <div className="bg-[#0a0a0c] py-16 border-y border-neutral-900">
           <div className="max-w-6xl mx-auto px-8">
-            <h2 className="text-3xl font-bold mb-6 border-l-4 border-crunchy pl-4 flex items-center gap-3">
-              <span className="text-crunchy">
-                Odcinek {activeEpisode.episodeNumber}
-              </span>
-              <span className="text-white text-xl">
-                | {activeEpisode.title}
-              </span>
-            </h2>
-
-            <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-neutral-800">
-              <video
-                key={activeEpisode.id}
-                className="w-full h-full outline-none"
-                controls
-                autoPlay
-                crossOrigin="anonymous"
-                src={`http://localhost:8080${activeEpisode.streamUrl}`}
-              >
-                Twoja przeglądarka nie obsługuje wideo.
-              </video>
-            </div>
+            <CustomPlayer
+              key={activeEpisode.id}
+              streamUrl={`http://localhost:8080${activeEpisode.streamUrl}`}
+              title={activeEpisode.title}
+              episodeNumber={activeEpisode.episodeNumber}
+            />
           </div>
         </div>
       )}
 
       {movie.episodes && movie.episodes.length > 0 && (
         <div className="max-w-6xl mx-auto px-8 py-12">
-          <h3 className="text-2xl font-bold mb-6">Wszystkie Odcinki</h3>
+          <h3 className="text-2xl font-bold mb-6">All Episodes</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {movie.episodes
@@ -159,7 +145,7 @@ export default function MovieDetail() {
                   <span
                     className={`text-sm font-bold mb-1 ${activeEpisode?.id === episode.id ? "text-crunchy" : "text-neutral-500"}`}
                   >
-                    Odcinek {episode.episodeNumber}
+                    Episode {episode.episodeNumber}
                   </span>
                   <span className="font-medium line-clamp-2 leading-tight">
                     {episode.title}
@@ -173,19 +159,19 @@ export default function MovieDetail() {
       <div className="max-w-7xl mx-auto px-8 md:px-16 py-12 grid md:grid-cols-3 gap-8 border-t border-neutral-900">
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
-            Dźwięk
+            Audio
           </h4>
-          <p className="text-white">Japoński (Oryginalny)</p>
+          <p className="text-white">Japan (Original)</p>
         </div>
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
-            Napisy
+            Subtitles
           </h4>
-          <p className="text-white">Polskie, Angielskie</p>
+          <p className="text-white">English</p>
         </div>
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
-            Gatunek
+            Genere
           </h4>
           <p className="text-white">{movie.categoryName || "Akcja, Sci-Fi"}</p>
         </div>
