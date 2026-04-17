@@ -1,4 +1,5 @@
-import { Bookmark, Search, User } from "lucide-react";
+import { Bookmark, ChevronDown, Search, User } from "lucide-react";
+import CategoryDropdown from "./CategoryDropdown";
 export default function Navbar() {
   return (
     <nav className="bg-neutral-800 text-neutral-400 flex items-center justify-between w-full px-8 py-3">
@@ -13,12 +14,7 @@ export default function Navbar() {
             className="h-6 w-auto"
           />
         </a>
-        <a
-          href="/categories"
-          className="hover:text-white transition-colors duration-200"
-        >
-          <span className="font-cinema font-light">Categories</span>
-        </a>
+        <CategoryDropdown />
       </div>
 
       <div className="flex items-center gap-6">
