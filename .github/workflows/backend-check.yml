@@ -26,5 +26,5 @@ jobs:
         working-directory: ./backend
 
       - name: Build with Gradle
-        run: ./gradlew build -x test --no-daemon
+        run: ./gradlew build --no-daemon
         working-directory: ./backend

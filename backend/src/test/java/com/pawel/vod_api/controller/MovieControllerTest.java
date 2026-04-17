@@ -25,8 +25,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MovieController.class)
@@ -74,8 +76,8 @@ public class MovieControllerTest {
 
         mockMvc.perform(get("/api/movies"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Test"))
-                .andExpect(jsonPath("$.categoryName").value("Category"));
+                .andExpect(jsonPath("$[0].title").value("Test"))
+                .andExpect(jsonPath("$[0].categoryName").value("Category"));
     }
 
     @Test
@@ -114,10 +116,9 @@ public class MovieControllerTest {
                 1L, "test", "opis", 2000, "url", "bgurl", "fantasy", Collections.emptyList()
         );
 
-        Mockito.when(movieService.getMoviesByCategory(1L)).thenReturn(List.of(fantasyMovie));
+        Mockito.when(movieService.getMoviesByCategory(anyLong())).thenReturn(List.of(fantasyMovie));
 
-        mockMvc.perform(get("/api/movies")
-                .param("categoryId", "1"))
+        mockMvc.perform(get("/api/movies/category/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("test"))
                 .andExpect(jsonPath("$[0].categoryName").value("fantasy"));
