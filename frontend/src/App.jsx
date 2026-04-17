@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import MovieGrid from "./components/MovieGrid";
 import MovieDetail from "./components/MovieDetail";
+import EpisodeStream from "./components/EpisodeStream";
 
 function Home() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/" element={<Home />} />
 
           <Route path="/movie/:id" element={<MovieDetail />} />
+          <Route path="/episode/:movieId/:episodeId" element={<EpisodeStream />} />
         </Routes>
       </div>
     </Router>

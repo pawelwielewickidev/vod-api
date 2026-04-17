@@ -1,14 +1,11 @@
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Star, Play, Bookmark, Plus, Share2 } from "lucide-react";
-import CustomPlayer from "./CustomPlayer";
+import { ChevronLeft, Star, Play, Bookmark, Share2 } from "lucide-react";
 
 export default function MovieDetail() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const [activeEpisode, setActiveEpisode] = useState(null);
 
   useEffect(() => {
     fetch(`http://localhost:8080/api/movies/${id}`)
@@ -19,7 +16,7 @@ export default function MovieDetail() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Błąd pobierania bazy:", err);
+        console.error("Error loading database:", err);
         setLoading(false);
       });
   }, [id]);
@@ -27,13 +24,13 @@ export default function MovieDetail() {
   if (loading)
     return (
       <div className="p-20 text-center text-crunchy animate-pulse text-2xl font-cinema">
-        Ładowanie danych...
+        Loading data...
       </div>
     );
   if (!movie)
     return (
       <div className="p-20 text-center text-white">
-        Nie znaleziono filmu w bazie.
+        Movie not found.
       </div>
     );
 
@@ -43,11 +40,11 @@ export default function MovieDetail() {
         <div className="absolute inset-0 z-0">
           <img
             src={`http://localhost:8080/api/movies/${movie.id}/bg`}
-            alt="Tło"
+            alt="Background"
             className="w-full h-full object-cover object-top"
             onError={(e) => {
               console.error(
-                "❌ Obrazek tła nie mógł zostać załadowany:",
+                "❌ Background image could not be loaded:",
                 e.target.src,
               );
 
@@ -85,22 +82,25 @@ export default function MovieDetail() {
 
           <p className="text-[#A0A0A0] text-lg max-w-2xl mb-8 leading-relaxed line-clamp-4">
             {movie.description ||
-              "Ten tytuł oczekuje na rozbudowany opis fabuły..."}
+              "This title awaits a detailed plot description..."}
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => {
-                if (movie.episodes && movie.episodes.length > 0) {
-                  setActiveEpisode(movie.episodes[0]);
-                } else {
-                  alert("Ten film nie ma jeszcze odcinków w bazie!");
-                }
-              }}
-              className="h-12 flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-neutral-100 px-6 py-3 font-bold rounded-xs transition-colors duration-200"
-            >
-              <Play fill="currentColor" /> START WATCHING
-            </button>
+            {movie.episodes && movie.episodes.length > 0 ? (
+              <Link
+                to={`/episode/${movie.id}/${movie.episodes[0].id}`}
+                className="h-12 flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-neutral-100 px-6 py-3 font-bold rounded-xs transition-colors duration-200"
+              >
+                <Play fill="currentColor" /> START WATCHING
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="h-12 flex items-center gap-2 bg-neutral-600 text-neutral-400 px-6 py-3 font-bold rounded-xs cursor-not-allowed"
+              >
+                <Play fill="currentColor" /> START WATCHING
+              </button>
+            )}
             <button className="h-12 w-12 p-3 border border-neutral-300 hover:bg-neutral-500 rounded-xs transition-colors">
               <Bookmark />
             </button>
@@ -111,19 +111,6 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      {activeEpisode && (
-        <div className="bg-[#0a0a0c] py-16 border-y border-neutral-900">
-          <div className="max-w-6xl mx-auto px-8">
-            <CustomPlayer
-              key={activeEpisode.id}
-              streamUrl={`http://localhost:8080${activeEpisode.streamUrl}`}
-              title={activeEpisode.title}
-              episodeNumber={activeEpisode.episodeNumber}
-            />
-          </div>
-        </div>
-      )}
-
       {movie.episodes && movie.episodes.length > 0 && (
         <div className="max-w-6xl mx-auto px-8 py-12">
           <h3 className="text-2xl font-bold mb-6">All Episodes</h3>
@@ -133,24 +120,18 @@ export default function MovieDetail() {
 
               .sort((a, b) => a.episodeNumber - b.episodeNumber)
               .map((episode) => (
-                <button
+                <Link
                   key={episode.id}
-                  onClick={() => setActiveEpisode(episode)}
-                  className={`flex flex-col text-left p-5 rounded-xl border transition-all duration-300 ${
-                    activeEpisode?.id === episode.id
-                      ? "bg-neutral-800 border-crunchy text-white scale-[1.02] shadow-[0_0_15px_rgba(255,100,0,0.2)]"
-                      : "bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white"
-                  }`}
+                  to={`/episode/${movie.id}/${episode.id}`}
+                  className="flex flex-col text-left p-5 rounded-xl border bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white transition-all duration-300"
                 >
-                  <span
-                    className={`text-sm font-bold mb-1 ${activeEpisode?.id === episode.id ? "text-crunchy" : "text-neutral-500"}`}
-                  >
+                  <span className="text-sm font-bold mb-1 text-neutral-500">
                     Episode {episode.episodeNumber}
                   </span>
                   <span className="font-medium line-clamp-2 leading-tight">
                     {episode.title}
                   </span>
-                </button>
+                </Link>
               ))}
           </div>
         </div>
