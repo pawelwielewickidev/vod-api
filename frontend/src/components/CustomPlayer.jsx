@@ -46,29 +46,41 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative group w-full max-w-4xl mx-auto bg-black rounded-2xl overflow-hidden shadow-2xl border border-neutral-800 flex items-center justify-center aspect-video"
-    >
-      <video
-        ref={videoRef}
-        src={streamUrl}
-        className="w-full h-full object-contain cursor-pointer"
-        onClick={togglePlay}
-        onTimeUpdate={handleTimeUpdate}
-      />
+    <div className="flex flex-col gap-4">
+      <div
+        ref={containerRef}
+        className="relative w-full h-96 bg-black flex items-center justify-center"
+      >
+        {/* Left black bar */}
+        <div className="absolute left-0 top-0 bottom-0 w-[100px] bg-black z-10" />
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        {/* Video container */}
+        <div className="relative h-full flex-1 flex items-center justify-center bg-black">
+          <video
+            ref={videoRef}
+            src={streamUrl}
+            className="h-full object-contain cursor-pointer"
+            onClick={togglePlay}
+            onTimeUpdate={handleTimeUpdate}
+          />
+        </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col gap-2">
-        <div className="text-white font-semibold text-sm mb-1 px-2 drop-shadow-md">
-          <span className="text-crunchy">Odcinek {episodeNumber}</span> |{" "}
-          {title}
+        {/* Right black bar */}
+        <div className="absolute right-0 top-0 bottom-0 w-[100px] bg-black z-10" />
+      </div>
+
+      {/* Details and controls below player */}
+      <div className="mx-auto w-full max-w-6xl px-8">
+        <div className="mb-4">
+          <div className="text-white font-semibold text-base mb-2 drop-shadow-md">
+            <span className="text-crunchy">Episode {episodeNumber}</span> |{" "}
+            {title}
+          </div>
         </div>
 
         {/* Progress bar */}
         <div
-          className="w-full py-3 cursor-pointer group/bar relative flex items-center"
+          className="w-full py-3 cursor-pointer group/bar relative flex items-center mb-4"
           onClick={handleSeek}
         >
           <div
@@ -83,12 +95,13 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
           ></div>
 
           <div
-            className="absolute w-4 h-4 bg-#ff6400  rounded-full scale-0 group-hover/bar:scale-100 transition-transform shadow-lg z-20 pointer-events-none"
+            className="absolute w-4 h-4 bg-#ff6400  rounded-full scale-100 group-hover/bar:scale-125 transition-transform shadow-lg z-20 pointer-events-none"
             style={{ left: `calc(${progress}% - 8px)` }}
           />
         </div>
 
-        <div className="flex items-center justify-between pt-2">
+        {/* Controls */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-white">
             <button
               onClick={togglePlay}
@@ -115,15 +128,6 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
           </div>
         </div>
       </div>
-
-      {!isPlaying && progress === 0 && (
-        <button
-          onClick={togglePlay}
-          className="absolute inset-0 m-auto w-20 h-20 bg-crunchy/90 hover:bg-crunchy text-white rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-[0_0_30px_rgba(255,100,0,0.5)]"
-        >
-          <Play size={40} fill="currentColor" className="ml-1" />
-        </button>
-      )}
     </div>
   );
 }

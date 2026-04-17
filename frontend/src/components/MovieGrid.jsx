@@ -10,7 +10,7 @@ export default function MovieGrid() {
       .then((data) => {
         if (data && data.length > 0) {
           const grouped = data.reduce((acc, movie) => {
-            const categoryName = movie.categoryName || "Inne";
+            const categoryName = movie.categoryName || "Other";
 
             if (!acc[categoryName]) {
               acc[categoryName] = [];
@@ -34,7 +34,7 @@ export default function MovieGrid() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-[#F47521] text-xl font-bold animate-pulse">
-          Ładowanie biblioteki...
+          Loading library...
         </div>
       </div>
     );
@@ -43,7 +43,7 @@ export default function MovieGrid() {
   if (Object.keys(movieByCategory).length === 0) {
     return (
       <div className="text-center text-neutral-500 py-20">
-        Brak filmów w bazie danych. Dodaj coś w Postmanie!
+        No movies in database. Add movies via Postman!
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function MovieGrid() {
                   <img
                     src={
                       `http://localhost:8080/api/movies/${movie.id}/poster` ||
-                      "https://placehold.co/400x600/1f1f1f/404040?text=Brak+Okładki"
+                      "https://placehold.co/400x600/1f1f1f/404040?text=No+Cover"
                     }
                     alt={movie.title}
                     className="w-full h-64 md:h-80 object-cover"

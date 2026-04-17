@@ -6,17 +6,17 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log("🚀 Hero zaczyna pobierać dane...");
+    console.log("🚀 Hero starts loading data...");
 
     fetch("http://localhost:8080/api/movies")
       .then(async (response) => {
-        if (!response.ok) throw new Error(`Błąd HTTP: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         return response.json();
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           console.log(
-            `✅ Znaleziono ${data.length} filmów. Ustawiam karuzelę.`,
+            `✅ Found ${data.length} movies. Setting carousel.`,
           );
 
           let shuffled = [...data];
@@ -30,7 +30,7 @@ export default function HeroSection() {
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error("❌ Błąd krytyczny w Hero:", error);
+        console.error("❌ Critical error in Hero:", error);
         setIsLoading(false);
       });
   }, []);
@@ -59,7 +59,7 @@ export default function HeroSection() {
     return (
       <div className="w-full h-[70vh] min-h-[500px] bg-neutral-900 animate-pulse flex items-center justify-center">
         <span className="text-neutral-500 font-bold text-xl">
-          Ładowanie premiery...
+          Loading premiere...
         </span>
       </div>
     );
@@ -75,8 +75,9 @@ export default function HeroSection() {
         <img
           key={currentMovie.id}
           src={
+            // eslint-disable-next-line no-constant-binary-expression
             `http://localhost:8080/api/movies/${currentMovie.id}/bg` ||
-            currentMovie.posterUrl ||
+            currentMovie.thumbnailUrl ||
             "https://images.alphacoders.com/133/1331511.jpeg"
           }
           alt={currentMovie.title}
@@ -111,12 +112,12 @@ export default function HeroSection() {
           <span className="bg-neutral-800 text-neutral-100 px-2 py-0.5 rounded">
             12+
           </span>
-          <span>• {currentMovie.categoryName || "Anime • Akcja"}</span>
+          <span>• {currentMovie.categoryName || "Anime • Action"}</span>
         </div>
 
         <p className="text-neutral-300 text-lg leading-relaxed line-clamp-3">
           {currentMovie.description ||
-            "Brak opisu w bazie danych. Uzupełnij opis w panelu Spring Boot!"}
+            "No description in database. Add description via Spring Boot panel!"}
         </p>
 
         <div className="flex items-center gap-4 mt-4">
