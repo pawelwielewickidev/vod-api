@@ -43,6 +43,13 @@ export default function EpisodeStream() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <div className="w-full px-8 py-8">
+        <CustomPlayer
+          streamUrl={`http://localhost:8080${episode.streamUrl}`}
+          title={episode.title}
+          episodeNumber={episode.episodeNumber}
+        />
+      </div>
       <div className="max-w-6xl mx-auto px-8 py-8">
         <Link
           to={`/movie/${movieId}`}
@@ -51,18 +58,13 @@ export default function EpisodeStream() {
           <ChevronLeft size={20} /> Back to series page
         </Link>
 
-        <h1 className="text-3xl font-bold mb-4">{movie.title}</h1>
+        <h1 className="text-3xl font-bold mb-4 text-[#F47521]">
+          {movie.title}
+        </h1>
         <p className="text-neutral-400 mb-8">
           Episode {episode.episodeNumber}: {episode.title}
         </p>
-      </div>
-
-      <div className="w-full px-8 py-8">
-        <CustomPlayer
-          streamUrl={`http://localhost:8080${episode.streamUrl}`}
-          title={episode.title}
-          episodeNumber={episode.episodeNumber}
-        />
+        <p className="text-neutral-400">{episode.description}</p>
       </div>
 
       {movie.episodes && movie.episodes.length > 0 && (

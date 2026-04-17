@@ -71,12 +71,7 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
 
       {/* Details and controls below player */}
       <div className="mx-auto w-full max-w-6xl px-8">
-        <div className="mb-4">
-          <div className="text-white font-semibold text-base mb-2 drop-shadow-md">
-            <span className="text-crunchy">Episode {episodeNumber}</span> |{" "}
-            {title}
-          </div>
-        </div>
+        <div className="mb-4"></div>
 
         {/* Progress bar */}
         <div
