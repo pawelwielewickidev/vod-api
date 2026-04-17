@@ -50,6 +50,7 @@ public class EpisodeService {
         episode.setTitle(request.getTitle());
         episode.setEpisodeNumber(request.getEpisodeNumber());
         episode.setVideoFilePath(request.getVideoFilePath());
+        episode.setEpDescription(request.getEpDescription());
 
 
         episode.setMovie(movie);

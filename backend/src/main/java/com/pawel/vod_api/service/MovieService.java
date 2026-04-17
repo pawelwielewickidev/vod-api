@@ -266,6 +266,7 @@ public class MovieService {
                 .id(episode.getId())
                 .title(episode.getTitle())
                 .episodeNumber(episode.getEpisodeNumber())
+                .epDescription(episode.getEpDescription())
                 .streamUrl("/api/episodes/" + episode.getId() + "/stream")
                 .build();
     }

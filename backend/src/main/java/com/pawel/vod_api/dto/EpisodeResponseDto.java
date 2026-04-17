@@ -12,6 +12,7 @@ public class EpisodeResponseDto {
     private Long id;
     private String title;
     private Integer episodeNumber;
+    private String epDescription;
 
 
     private String streamUrl;
