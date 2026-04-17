@@ -28,8 +28,8 @@ public class UserControllerTest {
 
     @Test
     void shouldCreateCreateNewUserAndStatus201() throws Exception{
-        UserDto userDto = new UserDto("email", "password");
-        UserResponseDto mockedResponse = new UserResponseDto(1L, "email", null);
+        UserDto userDto = new UserDto("email@host", "password");
+        UserResponseDto mockedResponse = new UserResponseDto(1L, "email@host", null);
 
         Mockito.when(userService.createUser(Mockito.any(UserDto.class))).thenReturn(mockedResponse);
 
@@ -37,7 +37,7 @@ public class UserControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(userDto)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("email"));
+                .andExpect(jsonPath("$.email").value("email@host"));
     }
     @Test
     void shouldReturnUserByIdAndStatus200() throws Exception{
