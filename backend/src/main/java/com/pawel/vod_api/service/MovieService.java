@@ -132,6 +132,7 @@ public class MovieService {
                 movie.getReleaseDate(),
                 movie.getThumbnailPath(),
                 movie.getBackgroundPath(),
+                movie.getLogoPath(),
                 movie.getCategory().getName(),
                 movie.getEpisodes() != null
                         ? movie.getEpisodes().stream()
@@ -156,6 +157,7 @@ public class MovieService {
         movie.setReleaseDate(movieDto.getReleaseDate());
         movie.setThumbnailPath(movieDto.getThumbnailPath());
         movie.setBackgroundPath(movieDto.getBackgroundPath());
+        movie.setLogoPath(movieDto.getLogoPath());
         movie.setCategory(findCategory);
 
         Movie savedMovie = movieRepository.save(movie);
@@ -167,6 +169,7 @@ public class MovieService {
                 savedMovie.getReleaseDate(),
                 savedMovie.getThumbnailPath(),
                 savedMovie.getBackgroundPath(),
+                savedMovie.getLogoPath(),
                 savedMovie.getCategory().getName(),
                 movie.getEpisodes() != null
                         ? movie.getEpisodes().stream()
@@ -187,6 +190,7 @@ public class MovieService {
                 movie.getReleaseDate(),
                 movie.getThumbnailPath(),
                 movie.getBackgroundPath(),
+                movie.getLogoPath(),
                 movie.getCategory().getName(),
                 movie.getEpisodes() != null
                         ? movie.getEpisodes().stream()
@@ -213,6 +217,7 @@ public class MovieService {
                         movie.getReleaseDate(),
                         movie.getThumbnailPath(),
                         movie.getBackgroundPath(),
+                        movie.getLogoPath(),
                         movie.getCategory().getName(),
                         movie.getEpisodes() != null
                                 ? movie.getEpisodes().stream()
@@ -259,6 +264,44 @@ public class MovieService {
             throw new ResourceNotFoundException("Plik nie istnieje.");
         }
         return bgResource;
+    }
+
+    public void uploadLogoPath(Long movieId, MultipartFile file) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                () -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId));
+
+        if(file.isEmpty()) {
+            throw new IllegalArgumentException("Plik logo nie może być pusty.");
+        }
+        try {
+            Path logosDir = Path.of("media", "logos");
+            if (!Files.exists(logosDir)) {
+                Files.createDirectories(logosDir);
+            }
+            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            Path filePath = logosDir.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            movie.setLogoPath(filePath.toString());
+            movieRepository.save(movie);
+        } catch (IOException e) {
+            throw new RuntimeException("Błąd podczas zapisywania logo na serwerze", e);
+        }
+    }
+
+    public Resource getLogoResource(Long movieId) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                ()-> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId)
+        );
+        String logoPath = movie.getLogoPath();
+        if(logoPath == null) {
+            throw new ResourceNotFoundException("Ten film nie ma przypisanego pliku logo.");
+        }
+        Resource logoResource = new FileSystemResource(logoPath);
+        if(!logoResource.exists()) {
+            throw new ResourceNotFoundException("Plik nie istnieje.");
+        }
+        return logoResource;
     }
 
     private EpisodeResponseDto mapToEpisodeDto(Episode episode) {

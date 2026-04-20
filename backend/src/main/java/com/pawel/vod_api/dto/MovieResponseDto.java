@@ -14,8 +14,9 @@ public class MovieResponseDto {
     private String title;
     private String description;
     private Integer releaseDate;
-    private String thumbnailUrl;
-    private String backgroundUrl;
+    private String thumbnailPath;
+    private String backgroundPath;
+    private String logoPath;
     private String categoryName;
 
     private List<EpisodeResponseDto> episodes;
