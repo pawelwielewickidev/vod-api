@@ -14,5 +14,6 @@ public class MovieDto {
     private Integer releaseDate;
     private String thumbnailPath;
     private String backgroundPath;
+    private String logoPath;
     private Long categoryId;
 }

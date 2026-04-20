@@ -22,6 +22,8 @@ public class Episode {
 
     private String videoFilePath;
 
+    private String epDescription;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movie_id")
     private Movie movie;

@@ -4,6 +4,7 @@ export default function HeroSection() {
   const [movies, setMovies] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [logoLoaded, setLogoLoaded] = useState(false);
 
   useEffect(() => {
     console.log("🚀 Hero starts loading data...");
@@ -15,9 +16,7 @@ export default function HeroSection() {
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          console.log(
-            `✅ Found ${data.length} movies. Setting carousel.`,
-          );
+          console.log(`✅ Found ${data.length} movies. Setting carousel.`);
 
           let shuffled = [...data];
           for (let i = shuffled.length - 1; i > 0; i--) {
@@ -40,6 +39,7 @@ export default function HeroSection() {
 
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % movies.length);
+      setLogoLoaded(false);
     }, 10000);
 
     return () => clearInterval(timer);
@@ -47,12 +47,14 @@ export default function HeroSection() {
 
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % movies.length);
+    setLogoLoaded(false);
   };
 
   const prevSlide = () => {
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? movies.length - 1 : prevIndex - 1,
     );
+    setLogoLoaded(false);
   };
 
   if (isLoading) {
@@ -103,32 +105,49 @@ export default function HeroSection() {
         <ChevronRight className="w-7 h-7" />
       </button>
 
-      <div className="relative z-10 px-8 md:px-16 w-full max-w-3xl flex flex-col gap-5">
-        <h1 className="text-5xl md:text-7xl font-cinema text-white leading-tight">
-          {currentMovie.title}
-        </h1>
+      <div className="relative z-10 px-2 md:px-10 w-full flex flex-col max-w-3xl gap-5">
+        <div className="flex flex-col items-start gap-6">
+          {currentMovie.logoPath ? (
+            <img
+              key={currentMovie.id}
+              src={`http://localhost:8080/api/movies/${currentMovie.id}/logo`}
+              alt={currentMovie.title}
+              onLoad={() => setLogoLoaded(true)}
+              onError={() => setLogoLoaded(false)}
+              className="max-h-32 object-contain"
+            />
+          ) : null}
 
-        <div className="flex items-center gap-3 text-sm text-neutral-300 font-medium">
-          <span className="bg-neutral-800 text-neutral-100 px-2 py-0.5 rounded">
-            12+
-          </span>
-          <span>• {currentMovie.categoryName || "Anime • Action"}</span>
-        </div>
+          <div className="w-full">
+            {!currentMovie.logoPath || !logoLoaded ? (
+              <h1 className="text-5xl md:text-7xl font-cinema text-white leading-tight">
+                {currentMovie.title}
+              </h1>
+            ) : null}
 
-        <p className="text-neutral-300 text-lg leading-relaxed line-clamp-3">
-          {currentMovie.description ||
-            "No description in database. Add description via Spring Boot panel!"}
-        </p>
+            <div className="flex items-center gap-3 text-sm text-neutral-300 font-medium">
+              <span className="bg-neutral-800 text-neutral-100 px-2 py-0.5 rounded">
+                12+
+              </span>
+              <span>• {currentMovie.categoryName || "Anime • Action"}</span>
+            </div>
 
-        <div className="flex items-center gap-4 mt-4">
-          <button className="flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-white px-6 py-3 font-bold rounded transition-colors duration-200">
-            <Play className="w-5 h-5 fill-current" />
-            START WATCHING E1
-          </button>
+            <p className="text-neutral-300 text-lg leading-relaxed line-clamp-3">
+              {currentMovie.description ||
+                "No description in database. Add description via Spring Boot panel!"}
+            </p>
 
-          <button className="flex items-center justify-center border-2 border-[#F47521] text-[#F47521] hover:bg-[#F47521] hover:text-white p-3 rounded transition-colors duration-200">
-            <Bookmark className="w-5 h-5" />
-          </button>
+            <div className="flex items-center gap-4 mt-4">
+              <button className="flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-white px-6 py-3 font-bold rounded transition-colors duration-200">
+                <Play className="w-5 h-5 fill-current" />
+                START WATCHING E1
+              </button>
+
+              <button className="flex items-center justify-center border-2 border-[#F47521] text-[#F47521] hover:bg-[#F47521] hover:text-white p-3 rounded transition-colors duration-200">
+                <Bookmark className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div className="absolute bottom-25 left-17 z-20 flex items-center gap-2">

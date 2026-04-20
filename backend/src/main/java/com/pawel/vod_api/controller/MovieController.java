@@ -80,6 +80,21 @@ public class MovieController {
         return ResponseEntity.ok(background);
     }
 
+    @PatchMapping(value = "/movies/{movieId}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadLogo
+            (@PathVariable Long movieId, @RequestParam("file") MultipartFile file){
+        movieService.uploadLogoPath(movieId, file);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/movies/{movieId}/logo", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<Resource> getLogo
+            (@PathVariable Long movieId){
+        Resource logo = movieService.getLogoResource(movieId);
+        return ResponseEntity.ok(logo);
+    }
+
     @GetMapping(value = "/movies/category/{categoryId}")
     public ResponseEntity<List<MovieResponseDto>> getAllMoviesByCategory(@PathVariable Long categoryId){
         return ResponseEntity.ok(movieService.getMoviesByCategory(categoryId));

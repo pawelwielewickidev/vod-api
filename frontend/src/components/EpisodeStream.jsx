@@ -64,7 +64,7 @@ export default function EpisodeStream() {
         <p className="text-neutral-400 mb-8">
           Episode {episode.episodeNumber}: {episode.title}
         </p>
-        <p className="text-neutral-400">{episode.description}</p>
+        <p className="text-neutral-400">{episode.epDescription}</p>
       </div>
 
       {movie.episodes && movie.episodes.length > 0 && (
