@@ -3,7 +3,6 @@ package com.pawel.vod_api.controller;
 import com.pawel.vod_api.dto.CategoryResponseDto;
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
-import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.service.MovieService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -22,13 +21,10 @@ import org.springframework.core.io.Resource;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MovieController.class)
@@ -57,19 +53,10 @@ public class MovieControllerTest {
     }
 
     @Test
-    void shouldReturnFullVideoAndStatus200() throws Exception {
-        Long movieId = 1L;
-        String videoContent = "fake video content mp4";
-        Resource mockedResource = new ByteArrayResource(videoContent.getBytes());
-
-        Mockito.when(movieService.getVideoResource(1L)).thenReturn(mockedResource);
-    }
-
-    @Test
     void shouldReturnListOfMoviesAndStatus200() throws Exception{
 
         MovieResponseDto testMovie = new MovieResponseDto(
-                1L, "Test", "Description", 2019, "url","bgurl", "Category",
+                1L, "Test", "Description", 2019, "url","bgurl", "logoPath", "Category",
                 Collections.emptyList());
 
         Mockito.when(movieService.getAllMovies()).thenReturn(List.of(testMovie));
@@ -84,8 +71,8 @@ public class MovieControllerTest {
     void shouldCreateNewMovieAndStatus201() throws Exception{
 
         CategoryResponseDto newCategory = new CategoryResponseDto(1L, "Action", "Opis");
-        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getId());
-        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", newCategory.getName(), Collections.emptyList());
+        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getId());
+        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getName(), Collections.emptyList());
 
         Mockito.when(movieService.saveMovie(Mockito.any(MovieDto.class))).thenReturn(mockedResponse);
 
@@ -100,7 +87,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMovieByIdAnd200() throws Exception{
         MovieResponseDto movie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "test", Collections.emptyList());
+                1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "test", Collections.emptyList());
 
 
         Mockito.when(movieService.getMovieById(1L)).thenReturn(movie);
@@ -113,7 +100,7 @@ public class MovieControllerTest {
     @Test
     void shouldReturnMoviesByCategories() throws Exception{
         MovieResponseDto fantasyMovie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "fantasy", Collections.emptyList()
+                1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "fantasy", Collections.emptyList()
         );
 
         Mockito.when(movieService.getMoviesByCategory(anyLong())).thenReturn(List.of(fantasyMovie));
