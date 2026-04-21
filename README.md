@@ -4,7 +4,6 @@
 
 This project is under active development. The core architecture and user/profile management are complete. Here is what's coming next:
 * **[In Progress] React based UI**
-* **[Planned] Spring Security:** Securing endpoints with JWT authentication and role-based access control (Admin vs User).
 * **[Planned] Rating and Review System:** Designing and implementing the logic that allows users to rate movies (on a 1-5 scale) and leave comments under them.
 
 A robust and scalable RESTful API built for a Video-On-Demand (VOD) platform. Designed with clean architecture principles, this project manages user accounts, multi-profile systems (similar to Netflix), and personal watchlists.
@@ -20,8 +19,8 @@ The entire application, including the database, is fully containerized using Doc
 * **Dockerized Environment:** Zero-config local setup with Docker Compose.
 
 ## 🛠️ Tech Stack
-* **Language:** Java 25
-* **Framework:** Spring Boot 4
+* **Language:** Java 25, JavaScript
+* **Framework:** Spring Boot 4, React
 * **Data Access:** Spring Data JPA / Hibernate
 * **Database:** PostgreSQL
 * **Testing:** JUnit 5, Mockito, Spring Boot Test, MockMvc
