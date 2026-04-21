@@ -1,4 +1,5 @@
 package com.pawel.vod_api.dto;
 
-public class AuthenticationResponse {
-}
+public record AuthenticationResponse(
+        String token
+) {}

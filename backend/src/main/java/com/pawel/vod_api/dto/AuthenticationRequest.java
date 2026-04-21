@@ -1,4 +1,6 @@
 package com.pawel.vod_api.dto;
 
-public class AuthenticationRequest {
-}
+public record AuthenticationRequest(
+        String email,
+        String password
+) {}
