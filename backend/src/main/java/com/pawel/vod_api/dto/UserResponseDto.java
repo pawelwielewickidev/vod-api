@@ -1,5 +1,6 @@
 package com.pawel.vod_api.dto;
 
+import com.pawel.vod_api.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,5 +11,5 @@ import lombok.NoArgsConstructor;
 public class UserResponseDto {
     private Long id;
     private String email;
-    private String role;
+    private Role role;
 }

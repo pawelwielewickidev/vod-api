@@ -2,12 +2,16 @@ package com.pawel.vod_api.controller;
 
 import com.pawel.vod_api.dto.ProfileDto;
 import com.pawel.vod_api.dto.ProfileResponseDto;
+import com.pawel.vod_api.service.JwtService;
 import com.pawel.vod_api.service.ProfileService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -27,7 +31,16 @@ public class ProfileControllerTest {
     private ProfileService profileService;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationProvider authenticationProvider;
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldCreateNewProfileAndStatus201() throws Exception{
         ProfileDto requestDto = new ProfileDto("Profile1", "url");
         ProfileResponseDto mockedResponse = new ProfileResponseDto(1L, "Profile1", "url");
@@ -42,6 +55,7 @@ public class ProfileControllerTest {
                 .andExpect(jsonPath("$.avatarUrl").value("url"));
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnAllProfilesAndStatus200() throws Exception{
         ProfileResponseDto profile = new ProfileResponseDto(
                 1L, "profil", "avatarUrl"
