@@ -3,6 +3,7 @@ package com.pawel.vod_api.controller;
 import com.pawel.vod_api.dto.CategoryResponseDto;
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
+import com.pawel.vod_api.service.JwtService;
 import com.pawel.vod_api.service.MovieService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -13,6 +14,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -36,8 +40,17 @@ public class MovieControllerTest {
     private MovieService movieService;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationProvider authenticationProvider;
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnPartialContent206WhenRangeHeaderIsPresent() throws Exception {
         Long movieId = 1L;
         byte[] fakeVideoData = "fake_video_data".getBytes();
@@ -53,6 +66,7 @@ public class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnListOfMoviesAndStatus200() throws Exception{
 
         MovieResponseDto testMovie = new MovieResponseDto(
@@ -68,6 +82,7 @@ public class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldCreateNewMovieAndStatus201() throws Exception{
 
         CategoryResponseDto newCategory = new CategoryResponseDto(1L, "Action", "Opis");
@@ -85,6 +100,7 @@ public class MovieControllerTest {
 
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnMovieByIdAnd200() throws Exception{
         MovieResponseDto movie = new MovieResponseDto(
                 1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "test", Collections.emptyList());
@@ -98,6 +114,7 @@ public class MovieControllerTest {
                 .andExpect(jsonPath("$.categoryName").value("test"));
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnMoviesByCategories() throws Exception{
         MovieResponseDto fantasyMovie = new MovieResponseDto(
                 1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "fantasy", Collections.emptyList()
@@ -112,6 +129,7 @@ public class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldUploadVideoFileAndReturn204NoContent() throws Exception{
         Long movieId = 1L;
         MockMultipartFile mockFile = new MockMultipartFile(
@@ -129,6 +147,7 @@ public class MovieControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldUploadPosterFileAndReturn204NoContent() throws Exception{
         Long movieId = 1L;
         MockMultipartFile mockFile = new MockMultipartFile(

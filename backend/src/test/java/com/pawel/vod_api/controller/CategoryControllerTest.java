@@ -3,11 +3,16 @@ package com.pawel.vod_api.controller;
 import com.pawel.vod_api.dto.CategoryDto;
 import com.pawel.vod_api.dto.CategoryResponseDto;
 import com.pawel.vod_api.service.CategoryService;
+import com.pawel.vod_api.service.JwtService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -29,8 +34,17 @@ public class CategoryControllerTest {
     private CategoryService categoryService;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationProvider authenticationProvider;
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldAddNewCategory() throws Exception {
         CategoryDto incomingDto = new CategoryDto("Comedy", "Opis");
 
@@ -48,6 +62,7 @@ public class CategoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnAllCategoriesAndStatus200() throws Exception{
         CategoryResponseDto testCategory = new CategoryResponseDto(1L, "test", "opis");
 

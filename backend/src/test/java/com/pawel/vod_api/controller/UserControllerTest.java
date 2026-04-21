@@ -2,12 +2,16 @@ package com.pawel.vod_api.controller;
 
 import com.pawel.vod_api.dto.UserDto;
 import com.pawel.vod_api.dto.UserResponseDto;
+import com.pawel.vod_api.service.JwtService;
 import com.pawel.vod_api.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -25,8 +29,17 @@ public class UserControllerTest {
     private UserService userService;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationProvider authenticationProvider;
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldCreateCreateNewUserAndStatus201() throws Exception{
         UserDto userDto = new UserDto("email@host", "password");
         UserResponseDto mockedResponse = new UserResponseDto(1L, "email@host", null);
@@ -40,6 +53,7 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.email").value("email@host"));
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnUserByIdAndStatus200() throws Exception{
         UserResponseDto mockedResponse = new UserResponseDto(
                 1L, "email", null

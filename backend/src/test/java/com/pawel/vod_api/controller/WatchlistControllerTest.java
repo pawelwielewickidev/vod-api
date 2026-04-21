@@ -6,12 +6,16 @@ import com.pawel.vod_api.model.Profile;
 import com.pawel.vod_api.model.User;
 import com.pawel.vod_api.model.Watchlist;
 import com.pawel.vod_api.repository.UserRepository;
+import com.pawel.vod_api.service.JwtService;
 import com.pawel.vod_api.service.WatchlistService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -39,8 +43,17 @@ public class WatchlistControllerTest {
     private ObjectMapper objectMapper;
     @MockitoBean
     private UserRepository userRepository;
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationProvider authenticationProvider;
 
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldAddMovieToWatchlist() throws Exception{
         MovieResponseDto movie = new MovieResponseDto();
         movie.setId(1L);
@@ -68,6 +81,7 @@ public class WatchlistControllerTest {
                 .andExpect(jsonPath("$.movieTitle").value("Test Movie"));
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnWatchlist() throws Exception{
         UserResponseDto user = new UserResponseDto();
         user.setId(1L);
@@ -89,6 +103,7 @@ public class WatchlistControllerTest {
                 .andExpect(jsonPath("$[0].movieTitle").value("Test Movie"));
     }
     @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturn204AndDeleteFromWatchlist() throws Exception{
         Long userId = 1L;
         Long profileId = 1L;
