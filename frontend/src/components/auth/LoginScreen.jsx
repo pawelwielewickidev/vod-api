@@ -78,7 +78,7 @@ const LoginScreen = () => {
           <h1 className="text-3xl font-bold text-orange-500 mb-2">
             VOD PORTFOLIO
           </h1>
-          <p className="text-gray-400">Zaloguj się, aby kontynuować seans</p>
+          <p className="text-gray-400">Log in to continue</p>
         </div>
 
         {/* Wyświetlanie błędu, jeśli jakiś wystąpił */}
@@ -91,14 +91,14 @@ const LoginScreen = () => {
         <form onSubmit={handleLogin} className="flex flex-col gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Adres E-mail
+              E-mail adress
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#141519] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
-              placeholder="jan@kowalski.pl"
+              placeholder="name@mail.com"
               required
             />
           </div>
@@ -106,13 +106,13 @@ const LoginScreen = () => {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-400">
-                Hasło
+                Password
               </label>
               <a
                 href="#"
                 className="text-xs text-orange-500 hover:text-orange-400"
               >
-                Zapomniałeś hasła?
+                Forgot password?
               </a>
             </div>
             <input
@@ -130,17 +130,17 @@ const LoginScreen = () => {
             disabled={isLoading}
             className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800 disabled:text-gray-400 text-white font-bold py-3 rounded-lg mt-2 transition-colors duration-200"
           >
-            {isLoading ? "Logowanie..." : "Zaloguj się"}
+            {isLoading ? "Logging in..." : "Log in"}
           </button>
         </form>
 
         <div className="mt-6 text-center text-gray-400 text-sm">
-          Nie masz jeszcze konta?{" "}
+          Don't have an account yet?{" "}
           <Link
             to="/register"
             className="text-orange-500 hover:text-white transition-colors font-medium"
           >
-            Zarejestruj się
+            Register
           </Link>
         </div>
       </div>
