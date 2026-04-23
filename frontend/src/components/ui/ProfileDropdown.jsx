@@ -60,7 +60,10 @@ const ProfileDropdown = () => {
       {isDropdownOpen && (
         <div className="absolute right-0 mt-4 w-48 bg-black/90 border border-gray-800 rounded-md shadow-2xl py-2 flex flex-col text-sm z-50">
           <button
-            onClick={handleChangeProfile}
+            onClick={() => {
+              handleChangeProfile();
+              setIsDropdownOpen(false);
+            }}
             className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors w-full text-left"
           >
             <svg
