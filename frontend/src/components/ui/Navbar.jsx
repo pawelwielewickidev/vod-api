@@ -1,14 +1,10 @@
 import { Bookmark, ChevronDown, Search, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CategoryDropdown from "./CategoryDropdown";
+import ProfileDropdown from "./ProfileDropdown";
 
 export default function Navbar() {
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("vod_token");
-    navigate("/login");
-  };
 
   return (
     <nav className="bg-neutral-800 text-neutral-400 flex items-center justify-between w-full px-8 py-3">
@@ -41,13 +37,7 @@ export default function Navbar() {
         >
           <Bookmark className="w-5 h-5 hover:fill-current" />
         </button>
-        <button
-          onClick={handleLogout}
-          className="bg-[#F47521] text-neutral-200 px-5 py-1.5 rounded-full font-medium hover:bg-[#d9661c] transition-colors duration-200 flex items-center gap-2"
-        >
-          <User className="w-4 h-4" />
-          Logout
-        </button>
+        <ProfileDropdown />
       </div>
     </nav>
   );

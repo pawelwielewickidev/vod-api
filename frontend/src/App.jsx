@@ -14,6 +14,7 @@ import LoginScreen from "./components/auth/LoginScreen";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import WelcomeScreen from "./components/ui/WelcomeScreen";
 import RegisterScreen from "./components/auth/RegisterScreen";
+import ProfileScreen from "./components/ui/ProfileScreen";
 
 function Home() {
   return (
@@ -43,6 +44,15 @@ function AppContent() {
         <Route path="/" element={<WelcomeScreen />} />
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<RegisterScreen />} />
+
+        <Route
+          path="/profiles"
+          element={
+            <ProtectedRoute>
+              <ProfileScreen />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/home"
