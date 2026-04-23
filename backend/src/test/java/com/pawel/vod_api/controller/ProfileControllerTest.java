@@ -18,8 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,5 +65,38 @@ public class ProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].profileName").value("profil"))
                 .andExpect(jsonPath("$[0].avatarUrl").value("avatarUrl"));
+    }
+    @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
+    void shouldUpdateProfileAndStatus200() throws Exception{
+        ProfileResponseDto profile = new ProfileResponseDto(4L, "profil", "avatarUrl");
+        Mockito.when(profileService.changeAvatar(4L, 1L, new ProfileDto("profil", "avatarUrl"))).thenReturn(profile);
+
+        mockMvc.perform(patch("/api/users/1/profiles/4")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ProfileDto("profil", "avatarUrl"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profileName").value("profil"))
+                .andExpect(jsonPath("$.avatarUrl").value("avatarUrl"));
+    }
+    @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
+    void shouldDeleteProfileAndStatus204() throws Exception {
+        Mockito.doNothing().when(profileService).deleteProfile(1L, 4L);
+        mockMvc.perform(delete("/api/users/1/profiles/4"))
+                .andExpect(status().isNoContent());
+    }
+    @Test
+    @WithMockUser(username = "admin@admin.com", roles = {"USER"})
+    void shouldUpdateProfileDataAndStatus200() throws Exception {
+        ProfileResponseDto profile = new ProfileResponseDto(4L, "profil", "avatarUrl");
+        Mockito.when(profileService.changeProfileData(1L, 4L, new ProfileDto("profil", "avatarUrl"))).thenReturn(profile);
+
+        mockMvc.perform(put("/api/users/1/profiles/4")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ProfileDto("profil", "avatarUrl"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profileName").value("profil"))
+                .andExpect(jsonPath("$.avatarUrl").value("avatarUrl"));
     }
 }

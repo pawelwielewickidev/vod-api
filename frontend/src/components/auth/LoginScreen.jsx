@@ -4,10 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(""); // Nowy stan na komunikaty o błędach
-  const [isLoading, setIsLoading] = useState(false); // Stan ładowania, żeby wyłączyć przycisk
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate(); // Do przekierowania po zalogowaniu
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,7 +15,6 @@ const LoginScreen = () => {
     setIsLoading(true);
 
     try {
-      // 1. Uderzamy do Twojego Spring Boota
       const response = await fetch(
         "http://localhost:8080/api/auth/authenticate",
         {
@@ -27,19 +26,15 @@ const LoginScreen = () => {
         },
       );
 
-      // 2. Sprawdzamy, czy odpowiedź to "200 OK"
       if (response.ok) {
         const data = await response.json();
 
-        // 3. Zapisujemy token JWT do pamięci przeglądarki!
         localStorage.setItem("vod_token", data.token);
 
         console.log("Zalogowano pomyślnie! Token zachowany.");
 
-        // 4. Przekierowujemy użytkownika na stronę główną
-        navigate("/home");
+        navigate("/profiles");
       } else {
-        // Jeśli Spring rzuci 403 Forbidden lub 401 Unauthorized
         setError("Nieprawidłowy e-mail lub hasło.");
       }
     } catch (err) {
@@ -56,12 +51,12 @@ const LoginScreen = () => {
       <div
         className="absolute inset-0 opacity-20 z-0"
         style={{
-          backgroundImage: 'url("/login-screen-bg.jpg")',
+          backgroundImage: 'url("/58000.jpg")',
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       ></div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-amber-900">
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-amber-800">
         <header className="relative z-10 bg-black px-8 py-4 flex items-center justify-between">
           <a href="/">
             <img
@@ -73,7 +68,7 @@ const LoginScreen = () => {
         </header>
       </div>
 
-      <div className=" border-amber-800 bg-black bg-gradient-to-b from-black via-black/50 to-amber-800/60 p-10 rounded-1xl shadow-2xl z-10 w-full max-w-md">
+      <div className=" border-amber-800 bg-black bg-gradient-to-b from-black via-black/50 to-amber-800/60 p-10 rounded-1xl shadow-1xl z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-orange-500 mb-2">
             VOD PORTFOLIO

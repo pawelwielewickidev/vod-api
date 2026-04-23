@@ -8,6 +8,7 @@ import com.pawel.vod_api.model.Profile;
 import com.pawel.vod_api.model.User;
 import com.pawel.vod_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 
@@ -50,6 +51,39 @@ public class ProfileService {
                 profile.getProfileName(),
                 profile.getAvatarUrl()
         );
+    }
+    public ProfileResponseDto changeAvatar(Long profileId, Long userId, ProfileDto profileDto){
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Brak użytkownika o ID:" + profileId));
+        Profile profile = user.getProfiles().stream()
+                .filter(p -> p.getId().equals(profileId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Brak profilu o ID:" + profileId));
+
+        profile.setAvatarUrl(profileDto.getAvatarUrl());
+
+        return mapToDto(profile);
+    }
+    public ProfileResponseDto changeProfileData(Long userId, Long profileId, ProfileDto profileDto){
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Brak użytkownika o ID:" + userId));
+        Profile profile = user.getProfiles().stream()
+                .filter(p -> p.getId().equals(profileId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Brak profilu o ID:" + profileId));
+
+        profile.setProfileName(profileDto.getProfileName());
+        profile.setAvatarUrl(profileDto.getAvatarUrl());
+
+        return mapToDto(profile);
+    }
+    public void deleteProfile(Long userId, Long profileId){
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Brak użytkownika o ID:" + userId));
+        Profile profile = user.getProfiles().stream()
+                .filter(p -> p.getId().equals(profileId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Brak profilu o ID:" + profileId));
+
+        user.getProfiles().remove(profile);
+         userRepository.save(user);
     }
     }
 
