@@ -36,7 +36,6 @@ function AppContent() {
 
   const showNavbar =
     isLoggedIn && !["/", "/login", "/register"].includes(location.pathname);
-
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       {showNavbar && <Navbar />}
