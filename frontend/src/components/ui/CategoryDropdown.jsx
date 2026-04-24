@@ -21,8 +21,8 @@ const CategoryDropdown = () => {
   ];
 
   return (
-    <div className="relative group">
-      <button className="flex items-center gap-1 text-neutral-400 hover:text-white py-2 font-cinema text-ml transition-colors">
+    <div className="relative group h-full">
+      <button className="h-full flex items-center gap-1 px-4 text-neutral-400 hover:text-white py-2 font-cinema text-ml transition-colors">
         Categories
         <svg
           className="w-4 h-4 mt-0.5"
@@ -39,8 +39,8 @@ const CategoryDropdown = () => {
         </svg>
       </button>
 
-      <div className="absolute top-full left-0 w-[650px] bg-neutral-900 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 flex border border-neutral-800 rounded-b-md overflow-hidden">
-        <div className="w-1/3 bg-neutral-800 p-6 flex flex-col gap-5 border-r border-amber-700">
+      <div className="absolute top-full left-0 w-[650px] bg-[#0a0a0a]/95 border border-neutral-800 rounded-b-md shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50 flex">
+        <div className="w-1/3 p-6 flex flex-col gap-5 border-r border-orange-500">
           <Link
             to="/browse"
             className="text-neutral-400 hover:text-white text-sm font-medium transition-colors"

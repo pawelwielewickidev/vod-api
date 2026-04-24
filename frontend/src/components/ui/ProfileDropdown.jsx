@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  ChevronDown,
+  Users,
+  Settings,
+  Bookmark,
+  Clock,
+  LogOut,
+} from "lucide-react";
 
 const ProfileDropdown = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [currentProfile, setCurrentProfile] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,104 +29,92 @@ const ProfileDropdown = () => {
     navigate("/login");
   };
 
-  const handleChangeProfile = () => {
-    navigate("/profiles");
-  };
-
   if (!currentProfile) {
     return (
-      <div className="w-10 h-10 rounded-full bg-gray-800 animate-pulse"></div>
+      <div className="h-full px-4 flex items-center">
+        <div className="w-10 h-10 rounded-full bg-neutral-800 animate-pulse border border-neutral-700"></div>
+      </div>
     );
   }
 
+  const menuItemClass =
+    "flex items-center gap-4 px-5 py-3 text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors w-full text-left";
+
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center gap-2 focus:outline-none"
-      >
+    <div
+      className="relative h-full"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <button className="h-full px-4 flex items-center gap-1.5 hover:bg-neutral-900 transition-colors focus:outline-none">
         <img
-          src={currentProfile.avatarUrl || "/avatar/avatar1.png"}
-          alt={currentProfile.profileName}
-          className="w-10 h-10 rounded-full object-cover border border-transparent hover:border-gray-400 transition-colors"
+          src={currentProfile.avatarUrl || "/media/avatars/default.svg"}
+          alt={currentProfile.name}
+          className="w-10 h-10 rounded-full object-cover border border-neutral-500"
         />
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className={`h-4 w-4 text-white transition-transform duration-300`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform duration-300`}
+        />
       </button>
 
-      {isDropdownOpen && (
-        <div className="absolute right-0 mt-4 w-48 bg-black/90 border border-gray-800 rounded-md shadow-2xl py-2 flex flex-col text-sm z-50">
-          <button
-            onClick={() => {
-              handleChangeProfile();
-              setIsDropdownOpen(false);
-            }}
-            className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors w-full text-left"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      {isOpen && (
+        <div className="absolute right-0 top-full w-[320px] bg-[#0a0a0a]/95 border border-neutral-800 shadow-2xl flex flex-col z-50 text-sm">
+          <div className="p-5 flex items-center gap-4 relative">
+            <img
+              src={currentProfile.avatarUrl || "/media/avatars/default.svg"}
+              className="w-14 h-14 rounded-full object-cover border-2 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+              alt="Awatar"
+            />
+            <div className="flex-1">
+              <div className="text-lg font-bold text-white tracking-wide">
+                {currentProfile.profileName}
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-neutral-800" />
+
+          <div className="py-2">
+            <button
+              onClick={() => {
+                navigate("/profiles");
+                setIsOpen(false);
+              }}
+              className={menuItemClass}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            Change Profile
-          </button>
+              <Users className="h-5 w-5 text-neutral-400" />
+              Switch Profile
+            </button>
+            <button className={menuItemClass}>
+              <Settings className="h-5 w-5 text-neutral-400" />
+              Settings
+            </button>
+          </div>
 
-          <button
-            onClick={() => setIsDropdownOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors w-full text-left"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <hr className="border-neutral-800" />
+
+          <div className="py-2">
+            <button className="flex items-center gap-4 px-5 py-3 text-orange-500 hover:bg-neutral-800 w-full text-left font-medium transition-colors">
+              <Bookmark className="h-5 w-5" />
+              My watchlist
+            </button>
+            <button className={menuItemClass}>
+              <Clock className="h-5 w-5 text-neutral-400" />
+              History
+            </button>
+          </div>
+
+          <hr className="border-neutral-800" />
+
+          <div className="py-2">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-4 px-5 py-3 text-red-500 hover:bg-neutral-800 w-full text-left font-medium transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            Settings
-          </button>
-
-          <hr className="border-gray-800 my-1" />
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors w-full text-left"
-          >
-            Log out
-          </button>
+              <LogOut className="h-5 w-5 text-red-600" />
+              Log out
+            </button>
+          </div>
         </div>
       )}
     </div>
