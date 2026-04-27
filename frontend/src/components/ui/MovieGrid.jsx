@@ -76,6 +76,13 @@ export default function MovieGrid() {
       const posterEntries = await Promise.all(
         movies.map(async (movie) => {
           try {
+            if (
+              (movie.thumbnailPath &&
+                movie.thumbnailPath.startsWith("http://")) ||
+              movie.thumbnailPath.startsWith("https://")
+            ) {
+              return [movie.id, movie.thumbnailPath];
+            }
             const response = await fetch(
               `http://localhost:8080/api/movies/${movie.id}/poster`,
               {
