@@ -192,6 +192,7 @@ export default function HeroSection() {
             "https://images.alphacoders.com/133/1331511.jpeg"
           }
           alt={currentMovie.title}
+          fetchPriority="high"
           className="w-full h-full object-cover object-center"
         />
 
@@ -224,6 +225,7 @@ export default function HeroSection() {
                 alt={currentMovie.title}
                 onLoad={() => setLogoLoaded(true)}
                 onError={() => setLogoLoaded(false)}
+                fetchPriority="high"
                 className="max-w-full max-h-full object-contain"
               />
             </div>
