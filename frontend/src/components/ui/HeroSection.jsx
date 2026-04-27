@@ -121,13 +121,19 @@ export default function HeroSection() {
         if (url) bgObjectUrl = url;
       });
     }
-
-    if (currentMovie.logoPath) {
+    const lgPath = currentMovie.logoPath;
+    if (
+      lgPath &&
+      (lgPath.startsWith("http://") || lgPath.startsWith("https://"))
+    ) {
+      setLogoUrl(lgPath);
+      logoObjectUrl = lgPath;
+    } else {
       fetchProtectedImage(
         `http://localhost:8080/api/movies/${currentMovie.id}/logo`,
         setLogoUrl,
       ).then((url) => {
-        logoObjectUrl = url;
+        if (url) logoObjectUrl = url;
       });
     }
 
@@ -209,21 +215,23 @@ export default function HeroSection() {
       </button>
 
       <div className="relative z-10 px-2 md:px-10 w-full flex flex-col max-w-3xl gap-5">
-        <div className="flex flex-col items-start gap-6">
+        <div className="flex flex-col items-start gap-6 leading-tight ">
           {currentMovie.logoPath && logoUrl ? (
-            <img
-              key={currentMovie.id}
-              src={logoUrl}
-              alt={currentMovie.title}
-              onLoad={() => setLogoLoaded(true)}
-              onError={() => setLogoLoaded(false)}
-              className="max-h-32 object-contain"
-            />
+            <div className="w-64 h-24 flex justify-center items-center">
+              <img
+                key={currentMovie.id}
+                src={logoUrl}
+                alt={currentMovie.title}
+                onLoad={() => setLogoLoaded(true)}
+                onError={() => setLogoLoaded(false)}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
           ) : null}
 
           <div className="w-full">
             {!currentMovie.logoPath || !logoLoaded ? (
-              <h1 className="text-5xl md:text-7xl font-cinema text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-cinema text-white leading-tight">
                 {currentMovie.title}
               </h1>
             ) : null}

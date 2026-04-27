@@ -2,6 +2,7 @@ package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.jikan.JikanAnimeDto;
 import com.pawel.vod_api.dto.jikan.JikanResponseDto;
+import com.pawel.vod_api.dto.tmdb.TmdbImagesResponse;
 import com.pawel.vod_api.dto.tmdb.TmdbResult;
 import com.pawel.vod_api.dto.tmdb.TmdbSearchResponse;
 import com.pawel.vod_api.model.Category;
@@ -81,6 +82,7 @@ public class JikanImportService {
 
                         String finalBgPath = null;
 
+
                         try {
                             String encodedTitle = java.net.URLEncoder.encode(dto.title(), java.nio.charset.StandardCharsets.UTF_8);
                             String tmdbUrl = "https://api.themoviedb.org/3/search/multi?api_key=" + tmdbApiKey + "&query=" + encodedTitle;
@@ -90,14 +92,45 @@ public class JikanImportService {
                             if (tmdbResponse != null && tmdbResponse.results() != null && !tmdbResponse.results().isEmpty()) {
                                 for (TmdbResult result : tmdbResponse.results()) {
                                     if (result.backdropPath() != null) {
+
                                         finalBgPath = "https://image.tmdb.org/t/p/original" + result.backdropPath();
-                                        System.out.println("💎 TMDB Backdrop dla " + dto.title() + " -> " + finalBgPath);
+                                        System.out.println("💎 TMDB Backdrop dla " + dto.title() + " -> ZNALEZIONO");
+
+
+                                        String mediaType = (result.mediaType() != null) ? result.mediaType() : "tv";
+                                        Integer tmdbId = result.id();
+
+                                        System.out.println("🔍 Szukam loga... TMDB ID: " + tmdbId + ", Typ: " + mediaType);
+
+                                        if (tmdbId != null) {
+
+                                            String imagesUrl = "https://api.themoviedb.org/3/" + mediaType + "/" + tmdbId + "/images?api_key=" + tmdbApiKey + "&include_image_language=en,ja,xx,null";
+
+                                            try {
+                                                TmdbImagesResponse imagesResp = restTemplate.getForObject(imagesUrl, TmdbImagesResponse.class);
+
+                                                if (imagesResp != null && imagesResp.logos() != null) {
+                                                    if (!imagesResp.logos().isEmpty()) {
+                                                        String logo = imagesResp.logos().get(0).filePath();
+                                                        movie.setLogoPath("https://image.tmdb.org/t/p/original" + logo);
+                                                        System.out.println("🌟 TMDB Logo DODANE -> " + logo);
+                                                    } else {
+                                                        System.out.println("⚠️ TMDB odpowiedziało, ale tablica 'logos' jest pusta dla tego anime.");
+                                                    }
+                                                }
+                                            } catch (Exception e) {
+                                                System.err.println("❌ Błąd połączenia z endpointem obrazków TMDB: " + e.getMessage());
+                                            }
+                                        } else {
+                                            System.out.println("❌ BŁĄD DTO: tmdbId wynosi null! Jackson nie zmapował pola 'id'.");
+                                        }
+
                                         break;
                                     }
                                 }
                             }
                         } catch (Exception e) {
-                            System.err.println("Błąd TMDB dla " + dto.title() + ": " + e.getMessage());
+                            System.err.println("❌ Błąd głównego wyszukiwania TMDB dla " + dto.title() + ": " + e.getMessage());
                         }
 
                         if (finalBgPath == null && dto.trailer() != null) {

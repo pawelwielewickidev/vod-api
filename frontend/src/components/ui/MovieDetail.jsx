@@ -41,6 +41,7 @@ export default function MovieDetail() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     let objectUrl = null;
+    let bgObjectUrl = null;
 
     const loadBackground = async () => {
       try {
@@ -64,8 +65,17 @@ export default function MovieDetail() {
         setBgUrl("");
       }
     };
+    setBgUrl("");
 
-    loadBackground();
+    const bgPath = movie.backgroundPath;
+    if (
+      bgPath &&
+      (bgPath.startsWith("http://") || bgPath.startsWith("https://"))
+    ) {
+      setBgUrl(bgPath);
+    } else {
+      loadBackground();
+    }
 
     return () => {
       controller.abort();
@@ -204,7 +214,7 @@ export default function MovieDetail() {
         </div>
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
-            Genere
+            {movie.categoryName}
           </h4>
           <p className="text-white">{movie.categoryName || "Akcja, Sci-Fi"}</p>
         </div>

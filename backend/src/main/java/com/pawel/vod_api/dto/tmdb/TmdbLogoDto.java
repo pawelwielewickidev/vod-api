@@ -4,10 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record TmdbResult(
-        @JsonProperty("backdrop_path") String backdropPath,
-        String title,
-        String name,
-        Integer id,
-        @JsonProperty("media_type") String mediaType
+public record TmdbLogoDto(
+        @JsonProperty("file_path") String filePath
 ) {}
