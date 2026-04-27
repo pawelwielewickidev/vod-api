@@ -105,12 +105,22 @@ export default function HeroSection() {
     setLogoUrl("");
     setLogoLoaded(false);
 
-    fetchProtectedImage(
-      `http://localhost:8080/api/movies/${currentMovie.id}/bg`,
-      setBgUrl,
-    ).then((url) => {
-      bgObjectUrl = url;
-    });
+    const bgPath = currentMovie.backgroundPath;
+
+    if (
+      bgPath &&
+      (bgPath.startsWith("http://") || bgPath.startsWith("https://"))
+    ) {
+      setBgUrl(bgPath);
+      bgObjectUrl = bgPath;
+    } else {
+      fetchProtectedImage(
+        `http://localhost:8080/api/movies/${currentMovie.id}/bg`,
+        setBgUrl,
+      ).then((url) => {
+        if (url) bgObjectUrl = url;
+      });
+    }
 
     if (currentMovie.logoPath) {
       fetchProtectedImage(
@@ -173,7 +183,7 @@ export default function HeroSection() {
           src={
             bgUrl ||
             currentMovie.thumbnailUrl ||
-            `https://images.alphacoders.com/133/1331511.jpeg`
+            "https://images.alphacoders.com/133/1331511.jpeg"
           }
           alt={currentMovie.title}
           className="w-full h-full object-cover object-center"

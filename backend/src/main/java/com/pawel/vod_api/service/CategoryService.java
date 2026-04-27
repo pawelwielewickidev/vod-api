@@ -36,4 +36,13 @@ public class CategoryService {
                 ))
                 .toList();
     }
+    public CategoryResponseDto getCategoryByName(String searchedName){
+        Category category = categoryRepository.findByName(searchedName)
+                .orElseThrow(() -> new RuntimeException("Category not found with name: " + searchedName));
+        return new CategoryResponseDto(
+                category.getId(),
+                category.getName(),
+                category.getDescription()
+        );
+    }
 }

@@ -27,6 +27,7 @@ public class Movie {
     private Integer releaseDate;
     private String thumbnailPath;
     private String videoFilePath;
+    @Column(length = 500)
     private String backgroundPath;
     private String logoPath;
 
