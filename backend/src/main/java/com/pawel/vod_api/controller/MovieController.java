@@ -4,6 +4,10 @@ import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
 import com.pawel.vod_api.service.MovieService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -100,9 +104,20 @@ public class MovieController {
         return ResponseEntity.ok(movieService.getMoviesByCategory(categoryId));
     }
 
+    @GetMapping("/movies/search/category")
+    public Slice<MovieResponseDto> getMoviesByCategoryId(
+            @RequestParam Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return movieService.getMoviesByCategoryId(categoryId, pageable);
+    }
+
     @DeleteMapping(value = "/movies/{movieId}")
     public ResponseEntity<Void> deleteMovie(@PathVariable Long movieId){
         movieService.deleteMovie(movieId);
         return ResponseEntity.noContent().build();
     }
+
 }
