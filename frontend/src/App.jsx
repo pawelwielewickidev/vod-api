@@ -4,6 +4,7 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import Navbar from "./components/ui/Navbar";
 import HeroSection from "./components/ui/HeroSection";
@@ -15,6 +16,9 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import WelcomeScreen from "./components/ui/WelcomeScreen";
 import RegisterScreen from "./components/auth/RegisterScreen";
 import ProfileScreen from "./components/ui/ProfileScreen";
+import { MovieProvider } from "./components/context/MovieContext";
+
+const queryClient = new QueryClient();
 
 function Home() {
   return (
@@ -36,6 +40,7 @@ function AppContent() {
 
   const showNavbar =
     isLoggedIn && !["/", "/login", "/register"].includes(location.pathname);
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       {showNavbar && <Navbar />}
@@ -74,9 +79,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <MovieProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </MovieProvider>
+    </QueryClientProvider>
   );
 }
 

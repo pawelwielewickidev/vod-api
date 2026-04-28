@@ -12,6 +12,8 @@ import com.pawel.vod_api.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
@@ -209,7 +211,7 @@ public class MovieService {
     }
 
     public List<MovieResponseDto> getMoviesByCategory(Long categoryId){
-        return movieRepository.findMovieByCategoryId(categoryId).stream()
+        return movieRepository.findMovieByCategory_Id(categoryId).stream()
                 .map(movie -> new MovieResponseDto(
                         movie.getId(),
                         movie.getTitle(),
@@ -226,6 +228,25 @@ public class MovieService {
                                 : new ArrayList<>()
                 ))
                 .toList();
+    }
+
+    public Slice<MovieResponseDto> getMoviesByCategoryId(Long categoryId, Pageable pageable) {
+        return movieRepository.findMovieByCategoryId(categoryId, pageable)
+                .map(movie -> new MovieResponseDto(
+                        movie.getId(),
+                        movie.getTitle(),
+                        movie.getDescription(),
+                        movie.getReleaseDate(),
+                        movie.getThumbnailPath(),
+                        movie.getBackgroundPath(),
+                        movie.getLogoPath(),
+                        movie.getCategory().getName(),
+                        movie.getEpisodes() != null
+                                ? movie.getEpisodes().stream()
+                                  .map(this::mapToEpisodeDto)
+                                  .toList()
+                                : new ArrayList<>()
+                ));
     }
 
     public void uploadBackgroundPath(Long movieId, MultipartFile file) {
