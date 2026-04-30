@@ -1,6 +1,10 @@
 package com.pawel.vod_api.dto.jikan;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
-public record JikanResponseDto(List<JikanAnimeDto> data) {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record JikanResponseDto(@JsonProperty("data") List<JikanAnimeDto> data) {
 }

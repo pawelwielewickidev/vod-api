@@ -34,6 +34,9 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     volumes:
       - ./media:/app/media
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
   frontend:
     build:
       context: ./frontend

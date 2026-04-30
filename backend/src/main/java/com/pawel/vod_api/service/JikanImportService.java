@@ -32,10 +32,23 @@ public class JikanImportService {
     @SneakyThrows
     @Transactional
     public void importData() {
-        String jikanUrl = "https://api.jikan.moe/v4/top/anime";
+        //String jikanUrl = "https://api.jikan.moe/v4/top/anime";
+        String jikanUrl = "https://api.jikan.moe/v4/top/manga";
 
         try {
+            String rawJson = restTemplate.getForObject(jikanUrl, String.class);
+            System.out.println("⚠️ SUROWY TEKST OD JIKAN: " + rawJson);
             JikanResponseDto response = restTemplate.getForObject(jikanUrl, JikanResponseDto.class);
+
+            System.out.println("🔍 --- DIAGNOSTYKA JIKAN ---");
+            System.out.println("1. Czy odpowiedź to null? -> " + (response == null));
+            if (response != null) {
+                System.out.println("2. Czy 'data' to null? -> " + (response.data() == null));
+                if (response.data() != null) {
+                    System.out.println("3. Liczba pobranych anime: " + response.data().size());
+                }
+            }
+            System.out.println("----------------------------");
 
             if (response != null && response.data() != null) {
                 for (JikanAnimeDto dto : response.data()) {
