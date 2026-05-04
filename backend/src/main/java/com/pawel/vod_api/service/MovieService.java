@@ -117,18 +117,16 @@ public class MovieService {
     }
 
     public List<MovieResponseDto> getAllMovies(){
-
         List<Movie> moviesFromDb = movieRepository.findAll();
-
         return moviesFromDb.stream()
                 .map(this::mapToDto)
                 .collect(toList());
     }
+
     private MovieResponseDto mapToDto(Movie movie){
-
-
         return new MovieResponseDto(
                 movie.getId(),
+                movie.getTmdbId(),
                 movie.getTitle(),
                 movie.getDescription(),
                 movie.getReleaseDate(),
@@ -139,21 +137,18 @@ public class MovieService {
                 movie.getEpisodes() != null
                         ? movie.getEpisodes().stream()
                           .map(this::mapToEpisodeDto)
-
                           .toList()
                         : new ArrayList<>()
-
-
         );
-
-
     }
+
     public MovieResponseDto saveMovie(MovieDto movieDto){
         Category findCategory = categoryRepository.findById(movieDto.getCategoryId()).orElseThrow(
                 () -> new ResourceNotFoundException("Brak kategorii o ID:" + movieDto.getCategoryId())
         );
 
         Movie movie = new Movie();
+        movie.setTmdbId(movieDto.getTmdbId());
         movie.setTitle(movieDto.getTitle());
         movie.setDescription(movieDto.getDescription());
         movie.setReleaseDate(movieDto.getReleaseDate());
@@ -164,43 +159,14 @@ public class MovieService {
 
         Movie savedMovie = movieRepository.save(movie);
 
-        return new MovieResponseDto(
-                savedMovie.getId(),
-                savedMovie.getTitle(),
-                savedMovie.getDescription(),
-                savedMovie.getReleaseDate(),
-                savedMovie.getThumbnailPath(),
-                savedMovie.getBackgroundPath(),
-                savedMovie.getLogoPath(),
-                savedMovie.getCategory().getName(),
-                movie.getEpisodes() != null
-                        ? movie.getEpisodes().stream()
-                          .map(this::mapToEpisodeDto)
-                          .toList()
-                        : new ArrayList<>()
-
-        );
+        return mapToDto(savedMovie);
     }
+
     public MovieResponseDto getMovieById(Long id){
         Movie movie = movieRepository.findById(id).orElseThrow(
                 ()-> new ResourceNotFoundException("Brak filmu o ID:" + id)
         );
-        return new MovieResponseDto(
-                movie.getId(),
-                movie.getTitle(),
-                movie.getDescription(),
-                movie.getReleaseDate(),
-                movie.getThumbnailPath(),
-                movie.getBackgroundPath(),
-                movie.getLogoPath(),
-                movie.getCategory().getName(),
-                movie.getEpisodes() != null
-                        ? movie.getEpisodes().stream()
-                          .map(this::mapToEpisodeDto)
-                          .toList()
-                        : new ArrayList<>()
-        );
-
+        return mapToDto(movie);
     }
 
     public void deleteMovie(Long id){
@@ -212,41 +178,13 @@ public class MovieService {
 
     public List<MovieResponseDto> getMoviesByCategory(Long categoryId){
         return movieRepository.findMovieByCategory_Id(categoryId).stream()
-                .map(movie -> new MovieResponseDto(
-                        movie.getId(),
-                        movie.getTitle(),
-                        movie.getDescription(),
-                        movie.getReleaseDate(),
-                        movie.getThumbnailPath(),
-                        movie.getBackgroundPath(),
-                        movie.getLogoPath(),
-                        movie.getCategory().getName(),
-                        movie.getEpisodes() != null
-                                ? movie.getEpisodes().stream()
-                                  .map(this::mapToEpisodeDto)
-                                  .toList()
-                                : new ArrayList<>()
-                ))
+                .map(this::mapToDto)
                 .toList();
     }
 
     public Slice<MovieResponseDto> getMoviesByCategoryId(Long categoryId, Pageable pageable) {
         return movieRepository.findMovieByCategoryId(categoryId, pageable)
-                .map(movie -> new MovieResponseDto(
-                        movie.getId(),
-                        movie.getTitle(),
-                        movie.getDescription(),
-                        movie.getReleaseDate(),
-                        movie.getThumbnailPath(),
-                        movie.getBackgroundPath(),
-                        movie.getLogoPath(),
-                        movie.getCategory().getName(),
-                        movie.getEpisodes() != null
-                                ? movie.getEpisodes().stream()
-                                  .map(this::mapToEpisodeDto)
-                                  .toList()
-                                : new ArrayList<>()
-                ));
+                .map(this::mapToDto);
     }
 
     public void uploadBackgroundPath(Long movieId, MultipartFile file) {

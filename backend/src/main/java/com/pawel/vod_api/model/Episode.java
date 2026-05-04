@@ -22,14 +22,13 @@ public class Episode {
 
     private String videoFilePath;
 
+
+    private String sourceEmbedUrl;
+
+    @Column(columnDefinition = "TEXT")
     private String epDescription;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movie_id")
     private Movie movie;
-
-
-    public String getStreamUrl() {
-        return "/api/episodes/" + this.id + "/stream";
-    }
 }

@@ -10,8 +10,12 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
 
   const togglePlay = () => {
     if (videoRef.current.paused) {
+      try {
       videoRef.current.play();
       setIsPlaying(true);
+      } catch (error) {
+        console.error("Video failed to play:", error);
+      }
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -58,6 +62,7 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
         <div className="relative h-full flex-1 flex items-center justify-center bg-black">
           <video
             ref={videoRef}
+            key={streamUrl}
             src={streamUrl}
             className="h-full object-contain cursor-pointer"
             onClick={togglePlay}
