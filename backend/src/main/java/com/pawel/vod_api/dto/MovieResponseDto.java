@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MovieResponseDto {
     private Long id;
+    private Long tmdbId;
     private String title;
     private String description;
     private Integer releaseDate;
@@ -18,6 +19,7 @@ public class MovieResponseDto {
     private String backgroundPath;
     private String logoPath;
     private String categoryName;
+
 
     private List<EpisodeResponseDto> episodes;
 

@@ -2,7 +2,7 @@ package com.pawel.vod_api.service;
 
 import com.pawel.vod_api.dto.tmdb.TmdbAnimeDto;
 import com.pawel.vod_api.dto.tmdb.TmdbAnimeResponseDto;
-import com.pawel.vod_api.dto.tmdb.TmdbImagesResponse; // Upewnij się, że ten import się zgadza z Twoimi paczkami
+import com.pawel.vod_api.dto.tmdb.TmdbImagesResponse;
 import com.pawel.vod_api.model.Category;
 import com.pawel.vod_api.model.Movie;
 import com.pawel.vod_api.repository.CategoryRepository;
@@ -48,6 +48,11 @@ public class TmdbAnimeImportService {
                         Movie movie = new Movie();
                         movie.setTitle(dto.name());
 
+
+                        if (dto.id() != null) {
+                            movie.setTmdbId(Long.valueOf(dto.id()));
+                        }
+
                         String desc = dto.overview();
                         if (desc != null && desc.length() > 1000) {
                             desc = desc.substring(0, 997) + "...";
@@ -71,16 +76,14 @@ public class TmdbAnimeImportService {
                             movie.setReleaseDate(0);
                         }
 
-                        // --- NOWY KOD: POBIERANIE LOGA ---
+                        // --- POBIERANIE LOGA ---
                         if (dto.id() != null) {
-                            // Szukamy loga (en = angielskie, ja = japońskie, null/xx = bez przypisanego języka)
                             String imagesUrl = "https://api.themoviedb.org/3/tv/" + dto.id() + "/images?api_key=" + tmdbApiKey + "&include_image_language=en,ja,xx,null";
 
                             try {
                                 TmdbImagesResponse imagesResp = restTemplate.getForObject(imagesUrl, TmdbImagesResponse.class);
 
                                 if (imagesResp != null && imagesResp.logos() != null && !imagesResp.logos().isEmpty()) {
-                                    // Bierzemy pierwsze najlepsze logo
                                     String logo = imagesResp.logos().get(0).filePath();
                                     movie.setLogoPath("https://image.tmdb.org/t/p/original" + logo);
                                 }

@@ -16,4 +16,5 @@ public class MovieDto {
     private String backgroundPath;
     private String logoPath;
     private Long categoryId;
+    private Long tmdbId;
 }

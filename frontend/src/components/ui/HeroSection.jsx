@@ -1,4 +1,5 @@
 import { Play, Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, memo } from "react";
 import TmdbImage from "./TmbdImage";
 import { useMovies } from "../context/MovieContext"; 
@@ -7,6 +8,7 @@ const HeroSection = memo(() => {
   const { movies, isLoading } = useMovies();
   const [heroMovies, setHeroMovies] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const navigate = useNavigate();
 
   
   useEffect(() => {
@@ -39,6 +41,10 @@ const HeroSection = memo(() => {
   if (heroMovies.length === 0) return null;
 
   const currentMovie = heroMovies[currentIndex];
+
+  const handleGoToDetails = () => {
+        navigate(`/movie/${currentMovie.id}`);
+    };
 
   return (
     <div className="relative px-10 w-full h-[75vh] min-h-[500px] flex items-center">
@@ -93,8 +99,8 @@ const HeroSection = memo(() => {
               {currentMovie.description || "Brak opisu w bazie danych."}
             </p>
             <div className="flex items-center gap-4 mt-6">
-              <button className="flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-white px-6 py-3 font-bold rounded transition-colors duration-200">
-                <Play className="w-5 h-5 fill-current" /> Watch Now
+              <button onClick={handleGoToDetails} className="flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-white px-6 py-3 font-bold rounded transition-colors duration-200">
+                <Play className="w-5 h-5 fill-current"/> Watch Now
               </button>
               <button className="flex items-center justify-center border-2 border-[#F47521] text-[#F47521] hover:bg-[#F47521] hover:text-white p-3 rounded transition-colors duration-200">
                 <Bookmark className="w-5 h-5" />

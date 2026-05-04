@@ -6,12 +6,13 @@ import CustomPlayer from "../ui/CustomPlayer";
 export default function EpisodeStream() {
   const { movieId, episodeId } = useParams();
   const navigate = useNavigate();
+  
   const [movie, setMovie] = useState(null);
   const [episode, setEpisode] = useState(null);
-  const [streamUrl, setStreamUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 1. Pobieranie danych o filmie i odcinku
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -28,7 +29,7 @@ export default function EpisodeStream() {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          },
+          }
         );
 
         if (response.status === 401 || response.status === 403) {
@@ -44,10 +45,10 @@ export default function EpisodeStream() {
         const data = await response.json();
         const actualMovie = Array.isArray(data) ? data[0] : data;
         setMovie(actualMovie);
-        const foundEpisode = actualMovie.episodes?.find(
-          (ep) => ep.id == episodeId,
-        );
+        
+        const foundEpisode = actualMovie.episodes?.find((ep) => ep.id == episodeId);
         setEpisode(foundEpisode);
+        
       } catch (err) {
         console.error("Error loading data:", err);
         setError("Failed to load episode data.");
@@ -59,51 +60,11 @@ export default function EpisodeStream() {
     fetchData();
   }, [movieId, episodeId, navigate]);
 
-  useEffect(() => {
-    if (!episode) return;
-
-    const controller = new AbortController();
-    const token = localStorage.getItem("vod_token");
-    if (!token) return;
-
-    let objectUrl = null;
-
-    const fetchStream = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8080${episode.streamUrl}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: controller.signal,
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Stream fetch failed: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        objectUrl = URL.createObjectURL(blob);
-        setStreamUrl(objectUrl);
-      } catch (err) {
-        if (err.name === "AbortError") {
-          return;
-        }
-        console.error("Failed to load protected stream:", err);
-        setError("Failed to load video stream.");
-        setStreamUrl(null);
-      }
-    };
-
-    fetchStream();
-
-    return () => {
-      controller.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [episode]);
+  // 2. Generujemy URL do Twojego backendu (Proxy/Redirect)
+  // Zauważ: nie robimy tu już fetch(), po prostu tworzymy stringa z adresem
+  const streamUrl = episode 
+    ? `http://localhost:8080/api/v1/watch/${episode.id}` 
+    : null;
 
   if (loading)
     return (
@@ -113,34 +74,31 @@ export default function EpisodeStream() {
     );
 
   if (error)
-    return (
-      <div className="min-h-screen bg-black text-white p-20 text-center">
-        {error}
-      </div>
-    );
+    return <div className="min-h-screen bg-black text-white p-20 text-center">{error}</div>;
 
   if (!movie || !episode)
-    return (
-      <div className="min-h-screen bg-black text-white p-20 text-center">
-        Episode not found.
-      </div>
-    );
+    return <div className="min-h-screen bg-black text-white p-20 text-center">Episode not found.</div>;
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="w-full px-8 py-8">
-        {streamUrl ? (
-          <CustomPlayer
-            streamUrl={streamUrl}
-            title={episode.title}
-            episodeNumber={episode.episodeNumber}
-          />
-        ) : (
-          <div className="text-center text-neutral-400 animate-pulse">
-            Loading video stream...
+      {/* Sekcja Odtwarzacza */}
+      <div className="w-full bg-[#0a0a0a] border-b border-neutral-800">
+          <div className="max-w-[1400px] mx-auto pt-8 pb-4 px-4 sm:px-8">
+            {streamUrl ? (
+                <CustomPlayer
+                    streamUrl={streamUrl}
+                    title={episode.title}
+                    episodeNumber={episode.episodeNumber}
+                />
+            ) : (
+                <div className="w-full aspect-video flex items-center justify-center bg-neutral-900 rounded-xl border border-neutral-800 text-neutral-400 animate-pulse">
+                    Initializing stream...
+                </div>
+            )}
           </div>
-        )}
       </div>
+
+      {/* Szczegóły pod odtwarzaczem */}
       <div className="max-w-6xl mx-auto px-8 py-8">
         <Link
           to={`/movie/${movieId}`}
@@ -149,19 +107,21 @@ export default function EpisodeStream() {
           <ChevronLeft size={20} /> Back to series page
         </Link>
 
-        <h1 className="text-3xl font-bold mb-4 text-[#F47521]">
+        <h1 className="text-3xl font-bold mb-2 text-[#F47521]">
           {movie.title}
         </h1>
-        <p className="text-neutral-400 mb-8">
+        <h2 className="text-xl font-semibold mb-4">
           Episode {episode.episodeNumber}: {episode.title}
+        </h2>
+        <p className="text-neutral-400 leading-relaxed max-w-4xl">
+          {episode.epDescription}
         </p>
-        <p className="text-neutral-400">{episode.epDescription}</p>
       </div>
 
+      {/* Lista wszystkich odcinków */}
       {movie.episodes && movie.episodes.length > 0 && (
-        <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="max-w-6xl mx-auto px-8 py-12 border-t border-neutral-900">
           <h3 className="text-2xl font-bold mb-6">All Episodes</h3>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {movie.episodes
               .sort((a, b) => a.episodeNumber - b.episodeNumber)
@@ -171,15 +131,11 @@ export default function EpisodeStream() {
                   to={`/episode/${movieId}/${ep.id}`}
                   className={`flex flex-col text-left p-5 rounded-xl border transition-all duration-300 ${
                     ep.id == episodeId
-                      ? "bg-neutral-800 border-crunchy text-white scale-[1.02] shadow-[0_0_15px_rgba(255,100,0,0.2)]"
+                      ? "bg-neutral-800 border-[#F47521] text-white scale-[1.02] shadow-[0_0_15px_rgba(244,117,33,0.15)]"
                       : "bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white"
                   }`}
                 >
-                  <span
-                    className={`text-sm font-bold mb-1 ${
-                      ep.id == episodeId ? "text-crunchy" : "text-neutral-500"
-                    }`}
-                  >
+                  <span className={`text-sm font-bold mb-1 ${ep.id == episodeId ? "text-[#F47521]" : "text-neutral-500"}`}>
                     Episode {ep.episodeNumber}
                   </span>
                   <span className="font-medium line-clamp-2 leading-tight">
