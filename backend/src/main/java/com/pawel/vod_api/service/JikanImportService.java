@@ -32,8 +32,8 @@ public class JikanImportService {
     @SneakyThrows
     @Transactional
     public void importData() {
-        //String jikanUrl = "https://api.jikan.moe/v4/top/anime";
-        String jikanUrl = "https://api.jikan.moe/v4/top/manga";
+        String jikanUrl = "https://api.jikan.moe/v4/top/anime";
+        //String jikanUrl = "https://api.jikan.moe/v4/top/manga";
 
         try {
             String rawJson = restTemplate.getForObject(jikanUrl, String.class);

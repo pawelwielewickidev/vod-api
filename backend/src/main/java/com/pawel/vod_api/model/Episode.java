@@ -1,4 +1,6 @@
 package com.pawel.vod_api.model;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,6 +15,7 @@ public class Episode {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty("id")
     private Long id;
 
     private String title;
@@ -22,6 +25,9 @@ public class Episode {
 
     private String videoFilePath;
 
+    @JsonProperty("shindenUrl")
+    private String shindenUrl;
+
 
     private String sourceEmbedUrl;
 
@@ -30,5 +36,6 @@ public class Episode {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movie_id")
+    @JsonIgnore
     private Movie movie;
 }
