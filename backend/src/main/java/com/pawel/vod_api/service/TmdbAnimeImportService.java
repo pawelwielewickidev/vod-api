@@ -24,30 +24,57 @@ public class TmdbAnimeImportService {
     @Value("${tmdb.api.key}")
     private String tmdbApiKey;
 
+    // Domyślna metoda wywoływana przy starych importach
     @Transactional
     public void importPopularAnime() {
-        String url = "https://api.themoviedb.org/3/discover/tv?api_key=" + tmdbApiKey +
-                "&language=en-US&with_original_language=ja&with_genres=16&sort_by=popularity.desc&page=1";
+        importAnimeByCategory("Popularne Anime", "16"); // 16 to ogólny gatunek Animacja w TMDB
+    }
 
-        System.out.println("⛩️ Rozpoczynam pobieranie TOP Anime z TMDB (z logotypami)...");
+    // Nowa, elastyczna metoda z tarczą anty-duplikatową
+    @Transactional
+    public void importAnimeByCategory(String categoryName, String tmdbGenreId) {
+
+        // Łączymy "16" (Animacja) z podanym gatunkiem, żeby zawsze pobierać anime
+        String genresParam = tmdbGenreId.equals("16") ? "16" : "16," + tmdbGenreId;
+
+        String url = "https://api.themoviedb.org/3/discover/tv?api_key=" + tmdbApiKey +
+                "&language=en-US&with_original_language=ja&with_genres=" + genresParam +
+                "&sort_by=popularity.desc&page=1";
+
+        System.out.println("⛩️ Rozpoczynam pobieranie: " + categoryName + " (Gatunki: " + genresParam + ")...");
 
         try {
             TmdbAnimeResponseDto response = restTemplate.getForObject(url, TmdbAnimeResponseDto.class);
 
             if (response != null && response.results() != null) {
 
-                Category category = categoryRepository.findByName("Popularne Anime")
+                Category category = categoryRepository.findByName(categoryName)
                         .orElseGet(() -> {
                             Category newCategory = new Category();
-                            newCategory.setName("Popularne Anime");
+                            newCategory.setName(categoryName);
                             return categoryRepository.save(newCategory);
                         });
 
                 for (TmdbAnimeDto dto : response.results()) {
-                    if (!movieRepository.existsByTitle(dto.name())) {
+
+                    // --- TARCZA OBRONNA PRZED DUPLIKATAMI ---
+                    boolean isDuplicate = false;
+
+                    // 1. Sprawdzamy po TMDB ID (Absolutna pewność)
+                    if (dto.id() != null && movieRepository.existsByTmdbId(Long.valueOf(dto.id()))) {
+                        isDuplicate = true;
+                        System.out.println("⏭️ Pomijam (ID TMDB już istnieje w bazie): " + dto.name());
+                    }
+                    // 2. Sprawdzamy po znormalizowanym tytule (Ignoruje spacje i duże/małe litery)
+                    else if (dto.name() != null && movieRepository.existsByNormalizedTitle(dto.name())) {
+                        isDuplicate = true;
+                        System.out.println("⏭️ Pomijam (Podobny tytuł jest już w bazie): " + dto.name());
+                    }
+
+                    // Jeśli przeszedł przez tarcze, zapisujemy nowy film
+                    if (!isDuplicate) {
                         Movie movie = new Movie();
                         movie.setTitle(dto.name());
-
 
                         if (dto.id() != null) {
                             movie.setTmdbId(Long.valueOf(dto.id()));
