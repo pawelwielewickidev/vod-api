@@ -8,13 +8,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MovieRepository extends JpaRepository<Movie, Long> {
     Slice<Movie> findMovieByCategoryId(Long categoryId, Pageable pageable);
     List<Movie> findMovieByCategory_Id(Long categoryId);
     boolean existsByTmdbId(Long tmdbId);
-    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Movie m " +
-            "WHERE LOWER(REPLACE(m.title, ' ', '')) = LOWER(REPLACE(:title, ' ', ''))")
-    boolean existsByNormalizedTitle(@Param("title") String title);
+    @Query("SELECT m FROM Movie m WHERE LOWER(REPLACE(m.title, ' ', '')) = LOWER(REPLACE(:title, ' ', ''))")
+    List<Movie> findByNormalizedTitle(@Param("title") String title);
     boolean existsByTitle(String title);
+    Optional<Movie> findByTmdbId(Long tmdbId);
+
 }

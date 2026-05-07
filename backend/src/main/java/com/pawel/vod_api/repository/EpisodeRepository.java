@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     boolean existsByMovieAndEpisodeNumber(Movie movie, Integer episodeNumber);
+    boolean existsByMovieIdAndEpisodeNumber(Long movieId, Integer episodeNumber);
     List<Episode> findByMovieIdAndShindenUrlIsNotNullAndSourceEmbedUrlIsNullOrderByEpisodeNumberAsc(Long movieId);
     List<Episode> findByMovieIdAndShindenUrlIsNullOrderByEpisodeNumberAsc(Long movieId);
 }

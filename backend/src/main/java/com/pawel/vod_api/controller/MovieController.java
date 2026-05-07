@@ -16,6 +16,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -118,6 +119,13 @@ public class MovieController {
     public ResponseEntity<Void> deleteMovie(@PathVariable Long movieId){
         movieService.deleteMovie(movieId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/movies/{movieId}/shnd")
+    public ResponseEntity<Map<String, List<String>>> getShindenSeriesUrls(@PathVariable Long movieId) {
+        List<String> shindenSeriesUrls = movieService.getShindenSeriesUrls(movieId);
+
+        return ResponseEntity.ok(Map.of("shindenUrls", shindenSeriesUrls));
     }
 
 }

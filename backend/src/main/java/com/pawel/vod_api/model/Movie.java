@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Entity
@@ -33,6 +34,9 @@ public class Movie {
     private String backgroundPath;
     private String logoPath;
 
+    @Column(length = 500)
+    private String tags;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -43,6 +47,14 @@ public class Movie {
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Episode> episodes = new ArrayList<>();
 
-    private String shindenSeriesUrl;
+    @Column(name = "shinden_series_url")
+    private String shindenSeriesUrlsRaw;
+
+    public List<String> getShindenSeriesUrls() {
+        if (this.shindenSeriesUrlsRaw == null || this.shindenSeriesUrlsRaw.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return Arrays.asList(this.shindenSeriesUrlsRaw.split(","));
+    }
 
 }

@@ -7,6 +7,8 @@ public class EpisodeDto {
     private String title;
     private Integer episodeNumber;
     private String videoFilePath;
+    private String sourceEmbedUrl;
+    private String shindenUrl;
     private String epDescription;
     private Long movieId;
 }
