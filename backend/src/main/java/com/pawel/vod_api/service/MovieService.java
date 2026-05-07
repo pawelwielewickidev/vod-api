@@ -272,4 +272,15 @@ public class MovieService {
                 .streamUrl("/api/episodes/" + episode.getId() + "/stream")
                 .build();
     }
+    public List<String> getShindenSeriesUrls(Long movieId) {
+        Movie movie = movieRepository.findById(movieId).orElseThrow(
+                () -> new ResourceNotFoundException("Nie znaleziono filmu o ID: " + movieId)
+        );
+        List<String> shindenSeriesUrls = movie.getShindenSeriesUrls();
+        if(shindenSeriesUrls == null) {
+            throw new ResourceNotFoundException("Ten film nie ma przypisanego adresu URL serii na Shinden.");
+        }
+
+        return shindenSeriesUrls;
+    }
 }

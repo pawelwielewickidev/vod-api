@@ -13,18 +13,20 @@ public class TmdbController {
 
     private final TmdbAnimeImportService tmdbService;
 
-    // Pobiera konkretny gatunek. Użycie w przeglądarce:
+    // Przykłady w przeglądarce:
+    // http://localhost:8080/api/tmdb/import?category=Anime Akcja&genreId=10759
     // http://localhost:8080/api/tmdb/import?category=Anime Fantasy&genreId=10765
+    // http://localhost:8080/api/tmdb/import?category=Anime Komedia&genreId=35
+
     @GetMapping("/import")
     public ResponseEntity<String> importAnime(@RequestParam String category, @RequestParam String genreId) {
-        tmdbService.importAnimeByCategory(category, genreId);
-        return ResponseEntity.ok("Rozpoczęto import kategorii: " + category + " dla ID TMDB: " + genreId + ". Sprawdź konsole w poszukiwaniu logów!");
+        new Thread(() -> tmdbService.importAnimeByCategory(category, genreId)).start();
+        return ResponseEntity.ok("Rozpoczęto import kategorii: " + category + " w tle. Sprawdź konsole w środowisku programistycznym!");
     }
 
-    // Domyślny szybki strzał po topowe anime
     @GetMapping("/import/popular")
     public ResponseEntity<String> importPopular() {
-        tmdbService.importPopularAnime();
-        return ResponseEntity.ok("Rozpoczęto import popularnych anime. Sprawdź konsole w poszukiwaniu logów!");
+        new Thread(tmdbService::importPopularAnime).start();
+        return ResponseEntity.ok("Rozpoczęto import popularnych anime w tle. Sprawdź konsole!");
     }
 }

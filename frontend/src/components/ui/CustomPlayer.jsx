@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Play, Pause, Maximize, Volume2 } from "lucide-react";
+import Hls from "hls.js";
 
 export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
   const videoRef = useRef(null);
@@ -8,14 +9,46 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // 🔥 MAGIA HLS.JS (Obsługa m3u8 w Chrome oraz zwykłych mp4)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !streamUrl) return;
+
+    let hls;
+
+    // Sprawdzamy czy to format m3u8 i czy przeglądarka wspiera hls.js (Chrome, Firefox, Edge)
+    if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log("✅ HLS załadowany i gotowy do odtwarzania!");
+      });
+    } 
+    // Natywne wsparcie dla m3u8 (głównie przeglądarka Safari / iOS)
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+    } 
+    // Standardowe pliki wideo (np. surowe .mp4)
+    else {
+      video.src = streamUrl;
+    }
+
+    // Sprzątanie po odmontowaniu komponentu, by uniknąć wycieków pamięci
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [streamUrl]);
+
   const togglePlay = () => {
     if (videoRef.current.paused) {
-      try {
-      videoRef.current.play();
-      setIsPlaying(true);
-      } catch (error) {
-        console.error("Video failed to play:", error);
-      }
+      videoRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        console.error("Wideo nie mogło wystartować:", error);
+      });
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -25,7 +58,7 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
   const handleTimeUpdate = () => {
     const current = videoRef.current.currentTime;
     const total = videoRef.current.duration;
-    setProgress((current / total) * 100);
+    setProgress((current / total) * 100 || 0); // Zapobiega błędom NaN, gdy total = 0
   };
 
   const handleSeek = (e) => {
@@ -35,7 +68,6 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
     const rect = bar.getBoundingClientRect();
 
     const clickPosition = e.clientX - rect.left;
-
     const percentage = clickPosition / rect.width;
 
     videoRef.current.currentTime = percentage * videoRef.current.duration;
@@ -63,9 +95,12 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
           <video
             ref={videoRef}
             key={streamUrl}
-            src={streamUrl}
+            // UWAGA: Usunięto stąd atrybut `src={streamUrl}`!
+            // Źródłem steruje teraz hook `useEffect` na górze pliku.
             className="h-full object-contain cursor-pointer"
             onClick={togglePlay}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous" // Bardzo ważne przy zewnętrznych linkach m3u8
             onTimeUpdate={handleTimeUpdate}
           />
         </div>
@@ -95,8 +130,11 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
           ></div>
 
           <div
-            className="absolute w-4 h-4 bg-#ff6400  rounded-full scale-100 group-hover/bar:scale-125 transition-transform shadow-lg z-20 pointer-events-none"
-            style={{ left: `calc(${progress}% - 8px)` }}
+            className="absolute w-4 h-4 rounded-full scale-100 group-hover/bar:scale-125 transition-transform shadow-lg z-20 pointer-events-none"
+            style={{ 
+              left: `calc(${progress}% - 8px)`,
+              backgroundColor: '#ff6400' // Poprawiona klasa z kolorem
+            }}
           />
         </div>
 

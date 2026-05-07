@@ -3,7 +3,7 @@ const axios = require('axios');
 
 // --- KONFIGURACJA ---
 const API_BASE_URL = 'http://localhost:8080/api/episodes';
-const MOVIE_ID_TO_SCRAPE = 43; // <--- WPISZ TUTAJ ID FILMU/ANIME Z TWOJEJ BAZY
+const MOVIE_ID_TO_SCRAPE = 67; // <--- WPISZ TUTAJ ID FILMU/ANIME Z TWOJEJ BAZY
 
 async function runAutomator() {
     console.log("🚀 Uruchamiam Głównego Automatora Shinden...");

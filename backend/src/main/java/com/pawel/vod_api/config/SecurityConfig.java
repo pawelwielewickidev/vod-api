@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/v1/watch/**").permitAll()
                         .requestMatchers("/api/episodes/**").permitAll()
+                        .requestMatchers("/api/movies/{movieId}/shnd").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Type;
 
 @Entity
 @Table(name = "episodes")
@@ -22,13 +23,13 @@ public class Episode {
 
     private Integer episodeNumber;
 
-
+    @Column(columnDefinition = "TEXT")
     private String videoFilePath;
 
     @JsonProperty("shindenUrl")
     private String shindenUrl;
 
-
+    @Column(columnDefinition = "TEXT")
     private String sourceEmbedUrl;
 
     @Column(columnDefinition = "TEXT")

@@ -77,4 +77,4 @@ async function discoverShindenUrls(movieId, seriesUrl) {
 
 
 // Przykład użycia:
-discoverShindenUrls(43, 'https://shinden.pl/series/55778-jujutsu-kaisen/episodes');
+discoverShindenUrls(67, 'https://shinden.pl/titles/50446-mahoutsukai-no-yome/episodes');
