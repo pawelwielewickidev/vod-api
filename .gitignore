@@ -38,5 +38,4 @@ out/
 media/*
 !media/.gitkeep
 
-### AI Generated Files ###
-AGENTS.md
+
