@@ -20,8 +20,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import tools.jackson.databind.ObjectMapper;
+
 import org.springframework.core.io.Resource;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -70,7 +71,7 @@ public class MovieControllerTest {
     void shouldReturnListOfMoviesAndStatus200() throws Exception{
 
         MovieResponseDto testMovie = new MovieResponseDto(
-                1L, "Test", "Description", 2019, "url","bgurl", "logoPath", "Category",
+                1L, 123L, "Test", "Description", 2019, "url","bgurl", "logoPath", "Category",
                 Collections.emptyList());
 
         Mockito.when(movieService.getAllMovies()).thenReturn(List.of(testMovie));
@@ -86,8 +87,8 @@ public class MovieControllerTest {
     void shouldCreateNewMovieAndStatus201() throws Exception{
 
         CategoryResponseDto newCategory = new CategoryResponseDto(1L, "Action", "Opis");
-        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getId());
-        MovieResponseDto mockedResponse = new MovieResponseDto(1L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getName(), Collections.emptyList());
+        MovieDto incomingDto = new MovieDto("Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getId(), 456L);
+        MovieResponseDto mockedResponse = new MovieResponseDto(1L, 456L, "Taxi Driver", "Best Movie", 1976, "url", "bgurl", "logoPath", newCategory.getName(), Collections.emptyList());
 
         Mockito.when(movieService.saveMovie(Mockito.any(MovieDto.class))).thenReturn(mockedResponse);
 
@@ -103,7 +104,7 @@ public class MovieControllerTest {
     @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnMovieByIdAnd200() throws Exception{
         MovieResponseDto movie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "test", Collections.emptyList());
+                1L, 789L, "test", "opis", 2000, "url", "bgurl", "logoPath", "test", Collections.emptyList());
 
 
         Mockito.when(movieService.getMovieById(1L)).thenReturn(movie);
@@ -117,7 +118,7 @@ public class MovieControllerTest {
     @WithMockUser(username = "admin@admin.com", roles = {"USER"})
     void shouldReturnMoviesByCategories() throws Exception{
         MovieResponseDto fantasyMovie = new MovieResponseDto(
-                1L, "test", "opis", 2000, "url", "bgurl", "logoPath", "fantasy", Collections.emptyList()
+                1L, 101L, "test", "opis", 2000, "url", "bgurl", "logoPath", "fantasy", Collections.emptyList()
         );
 
         Mockito.when(movieService.getMoviesByCategory(anyLong())).thenReturn(List.of(fantasyMovie));

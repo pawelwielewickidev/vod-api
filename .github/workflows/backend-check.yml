@@ -10,18 +10,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-
+    # Tymczasowa baza danych, która żyje tylko na czas trwania testów na GitHubie
     services:
       postgres:
         image: postgres:15
         env:
-
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
           POSTGRES_DB: vod_db
         ports:
           - 5432:5432
-
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -31,10 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '25' # Zmieniono na 25 zgodnie z Twoim tech stackiem
           distribution: 'temurin'
           cache: gradle
 
@@ -42,7 +40,15 @@ jobs:
         run: chmod +x gradlew
         working-directory: ./backend
 
-
-      - name: Build with Gradle
+      - name: Build with Gradle (Includes Tests)
         run: ./gradlew build --no-daemon
         working-directory: ./backend
+        env:
+          # Spring Boot musi wiedzieć, jak połączyć się z bazą zdefiniowaną wyżej w 'services'
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/vod_db
+          SPRING_DATASOURCE_USERNAME: user
+          SPRING_DATASOURCE_PASSWORD: password
+
+          # TUTAJ wstrzykujesz sekrety z GitHuba, jeśli jakaś usługa w Springu ich wymaga przy starcie
+          # (Odkomentuj i zmień nazwy, gdy dodasz klucze w zakładce Settings -> Secrets na GitHubie)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
