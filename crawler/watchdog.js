@@ -4,141 +4,213 @@ const { spawn } = require('child_process');
 // ==========================================
 // ⚙️ KONFIGURACJA ŚRODOWISKA
 // ==========================================
-const API_EPISODES_URL = 'http://localhost:8080/api/episodes'; // Endpoint Spring Boota
-const CONCURRENCY_LIMIT = 10; // Limit współbieżnych zapytań HTTP HEAD
+const API_EPISODES_URL = 'http://localhost:8080/api/episodes';
+const CONCURRENCY_LIMIT = 10;
+const DEBUG_LOGGING = true;
 
 // ==========================================
-// 🔍 FUNKCJA WERYFIKUJĄCA STATUS STRUMIENIA
+// 🛠️ HELPERY
 // ==========================================
-async function checkStream(episode) {
+
+async function runScript(scriptName) {
+    console.log(`\n⚙️ Wyzwalanie subprocesu (${scriptName})...`);
     try {
-        // Używamy metody HEAD na polu videoFilePath
-        const response = await axios.head(episode.videoFilePath, {
-            timeout: 5000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-            }
-        });
+        console.log(`\n--- Logi systemowe: ${scriptName} (Na żywo) ---`);
+        await new Promise((resolve, reject) => {
+            const childProcess = spawn('node', [scriptName], { stdio: 'inherit' });
 
-        // Kody 2xx i 3xx oznaczają, że serwer docelowy (np. Filemoon) posiada plik
-        if (response.status >= 200 && response.status < 400) {
-            return { episode, isAlive: true };
-        }
-    } catch (error) {
-        // Ciche przechwycenie wyjątków sieciowych (403, 404, ERR_NAME_NOT_RESOLVED, Timeout)
+            childProcess.on('close', (code) => {
+                console.log(`\n---------------------------------`);
+                if (code === 0) {
+                    console.log(`✅ Subproces ${scriptName} zakończył pracę pomyślnie.`);
+                    resolve();
+                } else {
+                    reject(new Error(`${scriptName} zakończył pracę z kodem błędu: ${code}`));
+                }
+            });
+
+            childProcess.on('error', (err) => {
+                reject(err);
+            });
+        });
+    } catch (execErr) {
+        console.error(`🔥 Krytyczny błąd podczas uruchamiania ${scriptName}: ${execErr.message}`);
+        throw execErr;
+    }
+}
+
+async function checkUrl(url, isEmbed = false) {
+    if (!url) return false;
+
+    if (url.startsWith('//')) {
+        url = 'https:' + url;
     }
 
-    return { episode, isAlive: false };
+    try {
+        const response = await axios.get(url, {
+            signal: AbortSignal.timeout(7000),
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': url,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+            },
+            maxRedirects: 5
+        });
+
+        if (response.status >= 200 && response.status < 300) {
+            if (isEmbed && typeof response.data === 'string') {
+                const html = response.data.toLowerCase();
+                const deadKeywords = [
+                    'file not found', 'video not found', 'file was deleted',
+                    'video was deleted', 'not found', 'banned', 'removed',
+                    'nie znaleziono', 'usunięto', 'no such file'
+                ];
+
+                const isDead = deadKeywords.some(keyword => html.includes(keyword));
+                if (isDead) return false;
+            }
+            return true;
+        }
+        return false;
+    } catch (error) {
+        return false;
+    }
 }
 
 // ==========================================
 // 🚀 GŁÓWNY SILNIK (WATCHDOG CORE)
 // ==========================================
 async function runWatchdog() {
-    console.log(`\n🐕 [WATCHDOG] Inicjalizacja procesu weryfikacji hotlinków...`);
+    console.log(`\n🐕 [WATCHDOG] Inicjalizacja cyklu walidacji...`);
     const startTime = Date.now();
-    let episodesToCheck = [];
+    let allEpisodes = [];
+    let shndMasterNeeded = false;
+    let automatorNeeded = false;
 
     try {
-        console.log(`📡 Pobieranie metadanych odcinków z API...`);
+        console.log(`📡 Pobieranie metadanych z API...`);
         const response = await axios.get(API_EPISODES_URL);
-
-        // Filtrowanie rekordów posiadających wyekstrahowany hotlink wideo
-        episodesToCheck = response.data.filter(ep => ep.videoFilePath !== null && ep.videoFilePath !== '');
-
+        allEpisodes = response.data;
     } catch (error) {
         console.error(`❌ Błąd komunikacji z backendem (Spring Boot): ${error.message}`);
         return;
     }
 
-    console.log(`🔍 Wytypowano ${episodesToCheck.length} strumieni do walidacji.\n`);
+    // ==========================================
+    // 1. WERYFIKACJA EMBEDÓW (sourceEmbedUrl)
+    // ==========================================
+    const episodesMissingStream = allEpisodes.filter(ep => !ep.videoFilePath);
+    const embedsToVerify = episodesMissingStream.filter(ep => ep.sourceEmbedUrl);
+    const totallyEmptyEpisodes = episodesMissingStream.filter(ep => !ep.sourceEmbedUrl);
 
-    const deadEpisodes = [];
+    // Jeśli mamy odcinki bez ŻADNEGO linku, shnd-master musi ruszyć
+    if (totallyEmptyEpisodes.length > 0) {
+        shndMasterNeeded = true;
+    }
 
-    // Przetwarzanie asynchroniczne w paczkach (Chunking) dla optymalizacji I/O
-    for (let i = 0; i < episodesToCheck.length; i += CONCURRENCY_LIMIT) {
-        const chunk = episodesToCheck.slice(i, i + CONCURRENCY_LIMIT);
+    if (embedsToVerify.length > 0) {
+        console.log(`\n🔍 Walidacja ${embedsToVerify.length} istniejących embedów pod kątem Soft 404...`);
+        const deadEmbeds = [];
 
-        const results = await Promise.all(chunk.map(ep => checkStream(ep)));
+        for (let i = 0; i < embedsToVerify.length; i += CONCURRENCY_LIMIT) {
+            const chunk = embedsToVerify.slice(i, i + CONCURRENCY_LIMIT);
+            const results = await Promise.all(chunk.map(async ep => ({
+                isAlive: await checkUrl(ep.sourceEmbedUrl, true),
+                episode: ep
+            })));
 
-        for (const result of results) {
-            if (result.isAlive) {
-                process.stdout.write('🟢');
-            } else {
-                process.stdout.write('🔴');
-                deadEpisodes.push(result.episode);
+            for (const result of results) {
+                if (!result.isAlive) {
+                    process.stdout.write('🔴');
+                    deadEmbeds.push(result.episode);
+                } else {
+                    process.stdout.write('🟢');
+                }
+            }
+        }
+
+        if (deadEmbeds.length > 0) {
+            console.log(`\n\n🗑️ Wykryto ${deadEmbeds.length} nieaktywnych embedów. Usuwanie z bazy danych...`);
+            shndMasterNeeded = true;
+
+            for (const ep of deadEmbeds) {
+                try {
+                    // Czyścimy sourceEmbedUrl, aby shnd-master wiedział, że musi pobrać nowy
+                    await axios.put(`${API_EPISODES_URL}/${ep.id}`, { sourceEmbedUrl: null });
+                    if (DEBUG_LOGGING) console.log(`   🧹 Oczyszczono rekord ID: ${ep.id}`);
+                } catch (err) {
+                    console.error(`   ❌ Błąd podczas czyszczenia ID ${ep.id}: ${err.message}`);
+                }
+            }
+        } else {
+            console.log(`\n\n✅ Wszystkie obecne embedy są poprawne.`);
+            // Jeśli nie trzeba szukać nowych embedów, ale brakuje hotlinków, odpalamy Automatora
+            if (embedsToVerify.length > 0) automatorNeeded = true;
+        }
+    }
+
+    // ==========================================
+    // 2. WERYFIKACJA HOTLINKÓW (videoFilePath)
+    // ==========================================
+    const streamsToCheck = allEpisodes.filter(ep => ep.videoFilePath);
+    const deadStreams = [];
+
+    if (streamsToCheck.length > 0) {
+        console.log(`\n🔍 Walidacja ${streamsToCheck.length} hotlinków (.m3u8)...`);
+
+        for (let i = 0; i < streamsToCheck.length; i += CONCURRENCY_LIMIT) {
+            const chunk = streamsToCheck.slice(i, i + CONCURRENCY_LIMIT);
+            const results = await Promise.all(chunk.map(async ep => ({
+                isAlive: await checkUrl(ep.videoFilePath, false),
+                episode: ep
+            })));
+
+            for (const result of results) {
+                if (!result.isAlive) {
+                    process.stdout.write('🔴');
+                    deadStreams.push(result.episode);
+                } else {
+                    process.stdout.write('🟢');
+                }
+            }
+        }
+
+        if (deadStreams.length > 0) {
+            console.log(`\n\n🗑️ Inwalidacja ${deadStreams.length} wygasłych strumieni...`);
+            automatorNeeded = true;
+
+            for (const ep of deadStreams) {
+                try {
+                    await axios.put(`${API_EPISODES_URL}/${ep.id}`, { videoFilePath: null });
+                } catch (err) {
+                    console.error(`   ❌ Błąd: ${err.message}`);
+                }
             }
         }
     }
 
-    console.log(`\n\n📊 Raport z audytu strumieni:`);
-    console.log(`   ✅ Aktywne: ${episodesToCheck.length - deadEpisodes.length}`);
-    console.log(`   💀 Wygasłe (403/404): ${deadEpisodes.length}`);
-
     // ==========================================
-    // 🧹 OCZYSZCZANIE I WYZWALANIE AUTOMATORA
+    // 3. EFEKT DOMINA (ORKIESTRACJA)
     // ==========================================
-    if (deadEpisodes.length > 0) {
-        console.log(`\n🗑️ Rozpoczynam inwalidację wygasłych linków w bazie danych...`);
-
-        for (const ep of deadEpisodes) {
-            try {
-                // Inwalidacja poprzez ustawienie videoFilePath na null
-                await axios.put(`${API_EPISODES_URL}/${ep.id}`, {
-                    videoFilePath: null
-                });
-                console.log(`   🧹 Zresetowano rekord ID: ${ep.id}`);
-            } catch (err) {
-                console.error(`   ❌ Błąd zerowania rekordu ID ${ep.id}: ${err.message}`);
-            }
+    try {
+        if (shndMasterNeeded) {
+            console.log(`\n🚀 [MASTER] Uruchamiam proces pozyskiwania nowych embedów...`);
+            await runScript('shnd-master.js');
+            automatorNeeded = true;
         }
 
-        console.log(`\n⚙️ Wyzwalanie subprocesu naprawczego (automator.js)...`);
-        try {
-            console.log(`\n--- Logi systemowe: Automator (Na żywo) ---`);
-
-            // Używamy 'spawn' z opcją 'inherit', co łączy konsole obu skryptów
-            await new Promise((resolve, reject) => {
-                const automatorProcess = spawn('node', ['automator.js'], { stdio: 'inherit' });
-
-                // Nasłuchujemy zamknięcia procesu Automatora
-                automatorProcess.on('close', (code) => {
-                    console.log(`\n---------------------------------`);
-                    if (code === 0) {
-                        resolve();
-                    } else {
-                        reject(new Error(`Automator zakończył pracę z kodem błędu: ${code}`));
-                    }
-                });
-
-                // Przechwycenie błędów na poziomie inicjalizacji podprocesu
-                automatorProcess.on('error', (err) => {
-                    reject(err);
-                });
-            });
-
-        } catch (execErr) {
-            console.error(`🔥 Krytyczny błąd podczas alokacji subprocesu: ${execErr.message}`);
+        if (automatorNeeded) {
+            console.log(`\n🚀 [HUNTER] Uruchamiam proces ekstrakcji hotlinków...`);
+            await runScript('automator.js');
+        } else if (!shndMasterNeeded) {
+            console.log('\n✅ Baza danych jest aktualna.');
         }
+    } catch (e) {
+        console.error(`\n🔥 Przerwano cykl z powodu błędu krytycznego w subprocesie.`);
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`🏁 Cykl walidacji zakończony. Czas egzekucji: ${duration}s.`);
+    console.log(`🏁 Zakończono w ${duration}s.`);
 }
 
-// ==========================================
-// ⚡ URUCHOMIENIE RĘCZNE
-// ==========================================
 runWatchdog();
-
-// ==========================================
-// ⏰ MODUŁ HARMONOGRAMU (CRON)
-// ==========================================
-/*
-const HOUR_IN_MS = 60 * 60 * 1000;
-console.log(`⏳ Scheduler załadowany. Cykl weryfikacyjny: 1h.`);
-setInterval(async () => {
-    console.log(`\n⏰ Wyzwolenie z harmonogramu: ${new Date().toLocaleString()}`);
-    await runWatchdog();
-}, HOUR_IN_MS);
-*/

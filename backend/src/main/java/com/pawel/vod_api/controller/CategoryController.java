@@ -26,5 +26,4 @@ public class CategoryController {
     public List<CategoryResponseDto> getAllCategories(){
         return categoryService.getAllCategories();
     }
-
 }

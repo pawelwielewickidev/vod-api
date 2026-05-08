@@ -82,26 +82,14 @@ public class EpisodeService {
     }
 
     @Transactional
-    public WatchdogEpisodeDto partialUpdate(Long id, WatchdogEpisodeDto dto) {
+    public Episode partialUpdate(Long id, WatchdogEpisodeDto dto) {
         Episode episode = episodeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono odcinka o ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Episode not found"));
 
-        // Aktualizujemy embedUrl, jeśli został dostarczony
-        if (dto.sourceEmbedUrl() != null) {
-            episode.setSourceEmbedUrl(dto.sourceEmbedUrl());
-        }
-
-        // Watchdog wysyła videoFilePath jako null w celu wyczyszczenia martwego linku,
-        // lub Automator wysyła nowy string po pomyślnej ekstrakcji.
+        // Zamiast if(null), przypisujemy wartość bezpośrednio
+        episode.setSourceEmbedUrl(dto.sourceEmbedUrl());
         episode.setVideoFilePath(dto.videoFilePath());
 
-        Episode saved = episodeRepository.save(episode);
-
-        return new WatchdogEpisodeDto(
-                saved.getId(),
-                saved.getShindenUrl(),
-                saved.getSourceEmbedUrl(),
-                saved.getVideoFilePath()
-        );
+        return episodeRepository.save(episode);
     }
 }

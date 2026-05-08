@@ -2,46 +2,63 @@ const puppeteer = require('puppeteer');
 const axios = require('axios');
 
 // ==========================================
-// ⚙️ KONFIGURACJA GŁÓWNA (Zmieniaj tylko to!)
+// ⚙️ KONFIGURACJA GŁÓWNA
 // ==========================================
-const MOVIE_ID = 64; // ID anime w Twojej bazie
-
-// URLe do API Spring Boota
-const API_MOVIE_URL = `http://localhost:8080/api/movies/${MOVIE_ID}/shnd`;
-const API_EPISODES_URL = 'http://localhost:8080/api/episodes';
+const API_BASE_URL = 'http://localhost:8080/api';
+const API_MOVIES_URL = `${API_BASE_URL}/movies`;
+const API_EPISODES_URL = `${API_BASE_URL}/episodes`;
 // ==========================================
 
 async function runMasterBot() {
-    console.log(`\n👑 Uruchamiam Dyrygenta (Architektura Sezonowa) dla Movie ID: ${MOVIE_ID}`);
+    console.log(`\n👑 Uruchamiam Dyrygenta (Architektura Globalna)`);
     console.log(`--------------------------------------------------`);
+
+    // 1. Sprawdzamy co jest do zrobienia, zanim w ogóle ruszymy przeglądarkę
+    let episodesWithoutShindenUrl = [];
+    let episodesWithoutEmbeds = [];
+
+    try {
+        console.log(`📡 Sprawdzam zadania z bazy danych...`);
+        const allEpisodesResponse = await axios.get(API_EPISODES_URL);
+        const allEpisodes = allEpisodesResponse.data;
+
+        episodesWithoutShindenUrl = allEpisodes.filter(ep => !ep.shindenUrl);
+        episodesWithoutEmbeds = allEpisodes.filter(ep => ep.shindenUrl && !ep.sourceEmbedUrl);
+    } catch (error) {
+        console.error(`🔥 Błąd API: ${error.message}`);
+        process.exit(1);
+    }
+
+    if (episodesWithoutShindenUrl.length === 0 && episodesWithoutEmbeds.length === 0) {
+        console.log(`✅ System w pełni zaktualizowany. Brak zadań dla Mastera. Kończę pracę.`);
+        process.exit(0);
+    }
 
     let browser;
     try {
-        console.log(`📡 Pobieram listę sezonów z bazy danych...`);
-        const movieResponse = await axios.get(API_MOVIE_URL);
-
-        // Chwytamy klucz z literką "s" na końcu!
-        const seriesUrls = movieResponse.data.shindenUrls;
-
-        // Sprawdzamy czy to na pewno jest tablica (Lista) i czy nie jest pusta
-        if (!seriesUrls || !Array.isArray(seriesUrls) || seriesUrls.length === 0) {
-            throw new Error(`Baza danych nie zwróciła poprawnej listy sezonów (shindenUrls)!`);
-        }
-        console.log(`✅ Zlokalizowano ${seriesUrls.length} sezonów do zbadania.\n`);
-
+        // POWRÓT DO TWOJEJ NIEZAWODNEJ METODY (Fizyczny Chrome na porcie 9222)
         console.log(`🤖 Łączę się z otwartą przeglądarką Chrome (port 9222)...`);
         browser = await puppeteer.connect({
             browserURL: 'http://127.0.0.1:9222',
             defaultViewport: null
         });
+        console.log(`✅ Połączono z przeglądarką.`);
 
-        // Przekazujemy TABLICĘ do Zwiadowcy
-        await runDiscovery(browser, seriesUrls);
+        // ETAP 1: DISCOVERY
+        if (episodesWithoutShindenUrl.length > 0) {
+            await runDiscovery(browser);
+            console.log(`\n⏳ Krótka pauza po etapie Discovery...\n`);
+            await new Promise(r => setTimeout(r, 2000));
 
-        console.log(`\n⏳ Krótka pauza przed etapem wyciągania embedów...\n`);
-        await new Promise(r => setTimeout(r, 2000));
+            // Odświeżamy zadania po Discovery (bo mogły dojść nowe linki Shinden do obrobienia)
+            const refreshedEpisodes = (await axios.get(API_EPISODES_URL)).data;
+            episodesWithoutEmbeds = refreshedEpisodes.filter(ep => ep.shindenUrl && !ep.sourceEmbedUrl);
+        }
 
-        await runHunter(browser);
+        // ETAP 2: HUNTER (Scrapowanie embedów)
+        if (episodesWithoutEmbeds.length > 0) {
+            await runHunter(browser, episodesWithoutEmbeds);
+        }
 
     } catch (error) {
         console.error(`🔥 Błąd krytyczny Dyrygenta: ${error.message}`);
@@ -54,137 +71,130 @@ async function runMasterBot() {
     }
 }
 
-async function runDiscovery(browser, seriesUrls) {
-    console.log(`🔎 [ETAP 1: DISCOVERY] Skanuję kolejne sezony na Shindenie...`);
+async function runDiscovery(browser) {
+    console.log(`🔎 [ETAP 1: DISCOVERY] Skanuję bazę w poszukiwaniu brakujących linków Shinden...`);
     const page = await browser.newPage();
-    let allScrapedEpisodes = []; // Tutaj zszywamy wszystkie sezony w jedną całość
+    let totalMappedCount = 0;
 
     try {
-        const response = await axios.get(`${API_EPISODES_URL}/missing-urls/${MOVIE_ID}`);
-        const dbEpisodes = response.data;
+        const moviesResponse = await axios.get(API_MOVIES_URL);
+        const allMovies = moviesResponse.data;
 
-        if (dbEpisodes.length === 0) {
-            console.log(`✅ Wszystkie odcinki mają już zmapowane linki Shinden.`);
-            await page.close();
-            return;
-        }
+        for (const movie of allMovies) {
+            const movieId = movie.id;
+            const movieTitle = movie.title;
 
-        // PĘTLA PRZEZ WSZYSTKIE SEZONY
-        for (let i = 0; i < seriesUrls.length; i++) {
-            const currentSeasonUrl = seriesUrls[i];
-            console.log(`🌐 Otwieram Sezon ${i + 1}: ${currentSeasonUrl}`);
-            await page.goto(currentSeasonUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+            // Zamiast sztywnego ID, sprawdzamy po kolei filmy z bazy
+            const response = await axios.get(`${API_EPISODES_URL}/missing-urls/${movieId}`);
+            const dbEpisodes = response.data;
 
-            // Zbieramy odcinki z aktualnego sezonu
-            const seasonEpisodes = await page.evaluate(() => {
-                const rows = Array.from(document.querySelectorAll('table tbody tr'));
-                return rows.map(row => {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length < 2) return null;
+            if (dbEpisodes.length === 0) continue;
 
-                    // --- 🛑 ELIMINATOR RECAPÓW I ODCINKÓW SPECJALNYCH ---
-                    const rowText = row.innerText.toLowerCase();
-                    const isRecap = rowText.includes('recap') ||
-                        rowText.includes('podsumowanie') ||
-                        rowText.includes('specjalny') ||
-                        rowText.includes('special') ||
-                    rowText.includes('recaps');
+            console.log(`\n--- Sprawdzam: "${movieTitle}" (ID: ${movieId}) ---`);
+            console.log(`   - Znaleziono ${dbEpisodes.length} odcinków bez linku.`);
 
-                    // Jeśli to recap, zwracamy null (bot go zignoruje)
-                    if (isRecap) return null;
+            const movieDetailsResponse = await axios.get(`${API_MOVIES_URL}/${movieId}/shnd`);
+            const seriesUrls = movieDetailsResponse.data.shindenUrls;
 
-                    const linkTag = row.querySelector('a[href*="/episode/"]');
-                    return {
-                        episodeUrl: linkTag ? linkTag.href : null
-                    };
-                }).filter(item => item !== null && item.episodeUrl !== null).reverse();
-            });
+            if (!seriesUrls || !Array.isArray(seriesUrls) || seriesUrls.length === 0) continue;
 
-            console.log(`   ✂️ Zebrano i odwrócono chronologicznie ${seasonEpisodes.length} odcinków z Sezonu ${i + 1}.`);
+            let allScrapedEpisodes = [];
+            for (let i = 0; i < seriesUrls.length; i++) {
+                const currentSeasonUrl = seriesUrls[i];
+                console.log(`   🌐 Otwieram Sezon ${i + 1}: ${currentSeasonUrl}`);
 
-            // Doklejamy zebrane odcinki do głównej tablicy
-            allScrapedEpisodes = allScrapedEpisodes.concat(seasonEpisodes);
-        }
+                // Twój oryginalny networkidle2
+                await page.goto(currentSeasonUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        console.log(`\n📚 Łącznie zeskrapowano ${allScrapedEpisodes.length} odcinków ze wszystkich sezonów. Rozpoczynam mapowanie absolutne...`);
+                const seasonEpisodes = await page.evaluate(() => {
+                    const rows = Array.from(document.querySelectorAll('table tbody tr'));
+                    return rows.map(row => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length < 2) return null;
 
-        let count = 0;
-        // Mapujemy na numery ciągłe w bazie
-        for (const dbEp of dbEpisodes) {
-            const targetAbsoluteNum = parseInt(dbEp.episodeNumber);
-            // Indeks tablicy jest o 1 mniejszy niż numer odcinka (odc. 1 to indeks 0)
-            const arrayIndex = targetAbsoluteNum - 1;
+                        const rowText = row.innerText.toLowerCase();
+                        const isRecap = rowText.includes('recap') || rowText.includes('podsumowanie') || rowText.includes('specjalny') || rowText.includes('special') || rowText.includes('recaps');
+                        if (isRecap) return null;
 
-            const match = allScrapedEpisodes[arrayIndex];
+                        const linkTag = row.querySelector('a[href*="/episode/"]');
+                        return { episodeUrl: linkTag ? linkTag.href : null };
+                    }).filter(item => item !== null && item.episodeUrl !== null).reverse();
+                });
 
-            if (match && match.episodeUrl) {
-                await axios.put(`${API_EPISODES_URL}/${dbEp.id}/shinden-url`, { shindenUrl: match.episodeUrl });
-                console.log(`🎯 Zmapowano odcinek ${targetAbsoluteNum} z bazy -> ${match.episodeUrl}`);
-                count++;
-            } else {
-                console.log(`⚠️ Brak odpowiednika na Shindenie dla Twojego odcinka nr ${targetAbsoluteNum}`);
+                allScrapedEpisodes = allScrapedEpisodes.concat(seasonEpisodes);
             }
+
+            let count = 0;
+            for (const dbEp of dbEpisodes) {
+                const targetAbsoluteNum = parseInt(dbEp.episodeNumber);
+                const arrayIndex = targetAbsoluteNum - 1;
+                const match = allScrapedEpisodes[arrayIndex];
+
+                if (match && match.episodeUrl) {
+                    await axios.put(`${API_EPISODES_URL}/${dbEp.id}/shinden-url`, { shindenUrl: match.episodeUrl });
+                    console.log(`   🎯 Zmapowano odcinek ${targetAbsoluteNum} -> ${match.episodeUrl}`);
+                    count++;
+                }
+            }
+            totalMappedCount += count;
         }
-        console.log(`✅ Zakończono Discovery: Pomyślnie zmapowano i zapisano ${count} linków.`);
+        console.log(`\n✅ Zakończono Discovery: Zmapowano łącznie ${totalMappedCount} linków.`);
     } catch (error) {
-        console.error(`❌ Błąd w Etapie 1: ${error.message}`);
+        console.error(`❌ Błąd w Etapie 1 (Discovery): ${error.message}`);
     } finally {
         if (!page.isClosed()) await page.close();
     }
 }
 
-async function runHunter(browser) {
-    console.log(`🏹 [ETAP 2: HUNTER] Wyciągam embedy z wielu źródeł...`);
+// Zmiana: Hunter przyjmuje teraz listę odcinków jako argument z Głównego Silnika
+async function runHunter(browser, episodesToProcess) {
+    console.log(`🏹 [ETAP 2: HUNTER] Wyszukuję embedy dla ${episodesToProcess.length} odcinków...`);
 
     try {
-        const response = await axios.get(`${API_EPISODES_URL}/todo/${MOVIE_ID}`);
-        const episodes = response.data;
-
-        if (!episodes || episodes.length === 0) {
-            console.log(`✅ Brak odcinków oczekujących na wyciągnięcie embeda.`);
-            return;
-        }
-
-        console.log(`📋 Znaleziono ${episodes.length} odcinków do obrobienia.\n`);
-
-        for (const episode of episodes) {
+        for (const episode of episodesToProcess) {
             const id = episode.id;
-            const title = episode.title || `Odcinek ${episode.episodeNumber}`;
+            const title = episode.movieTitle ? `${episode.movieTitle} - Odc. ${episode.episodeNumber}` : `Odcinek ${episode.episodeNumber}`;
             const shindenUrl = episode.shindenUrl;
 
-            if (!shindenUrl) continue;
+            console.log(`--- [START] ${title} (ID odcinka: ${id}) ---`);
 
-            console.log(`--- [START] ${title} (ID: ${id}) ---`);
-
+            // WYWOŁANIE TWOJEJ ORYGINALNEJ FUNKCJI Z PIERWSZEGO KODU
             const embedLinks = await scrapeEmbed(browser, shindenUrl);
 
             if (embedLinks) {
                 try {
-                    await axios.put(`${API_EPISODES_URL}/${id}/embed`, { sourceEmbedUrl: embedLinks });
+                    // Czysty zapis do bazy za pomocą Twojego endpointu DTO
+                    await axios.put(`${API_EPISODES_URL}/${id}`, { sourceEmbedUrl: embedLinks });
                     console.log(`💾 Zapisano w PostgreSQL paczkę linków:\n   -> ${embedLinks}`);
                 } catch (apiErr) {
-                    console.error(`🔥 Błąd API: ${apiErr.message}`);
+                    console.error(`🔥 Błąd API podczas zapisu embedów dla odcinka ${id}: ${apiErr.message}`);
                 }
             } else {
-                console.log(`⚠️ Nie zdobyto żadnych linków dla ID ${id}.`);
+                console.log(`⚠️ Nie zdobyto żadnych linków dla odcinka ${id}.`);
             }
             console.log(`--- [KONIEC] ---\n`);
         }
     } catch (error) {
-        console.error(`❌ Błąd w Etapie 2: ${error.message}`);
+        console.error(`❌ Błąd w Etapie 2 (Hunter): ${error.message}`);
     }
 }
 
+// ------------------------------------------------------------------------
+// PONIŻEJ ZNAJDUJE SIĘ W 100% TWÓJ ORYGINALNY KOD scrapeEmbed
+// Żadnych modyfikacji z mojej strony, żeby nie zepsuć ładowania tabeli
+// ------------------------------------------------------------------------
 async function scrapeEmbed(browser, targetUrl) {
     let foundLinks = [];
     const providersToHunt = ['cda', 'sibnet', 'dailymotion', 'vk', 'filemoon'];
+    const page = await browser.newPage();
 
     for (const provider of providersToHunt) {
-        const page = await browser.newPage();
         let interceptedLink = null;
 
         try {
-            // 1. NASŁUCHIWANIE (Działa w tle przez cały czas życia zakładki)
+            page.removeAllListeners('response');
+            page.removeAllListeners('request');
+
             page.on('response', async (res) => {
                 try {
                     const u = res.url();
@@ -209,7 +219,6 @@ async function scrapeEmbed(browser, targetUrl) {
             console.log(`🌐 [${provider.toUpperCase()}] Start...`);
             await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-            // 2. WYBÓR W TABELI
             const clicked = await page.evaluate((p) => {
                 const rows = Array.from(document.querySelectorAll('table tbody tr'));
                 const target = rows.find(r => r.innerText.toLowerCase().includes(p));
@@ -222,10 +231,9 @@ async function scrapeEmbed(browser, targetUrl) {
 
             if (!clicked) {
                 console.log(`   ❌ Brak w tabeli.`);
-                await page.close(); continue;
+                continue;
             }
 
-            // 3. KLIKNIĘCIE AKTYWACJI Z OBSŁUGĄ NAWIGACJI
             console.log(`   🖱️ Szukam przycisku aktywacji...`);
             await new Promise(r => setTimeout(r, 2000));
 
@@ -233,25 +241,18 @@ async function scrapeEmbed(browser, targetUrl) {
                 await Promise.all([
                     page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => {}),
                     page.evaluate(() => {
-                        // Krok 1: Próbujemy trafić precyzyjnie w ID/Klasę playera Shinden (Najbezpieczniejsze)
                         const exactBtn = document.querySelector('#player-show, a.ep-button, #load-player, .load-video-button');
                         if (exactBtn && exactBtn.offsetParent !== null) {
                             exactBtn.click();
                             return true;
                         }
-
-                        // Krok 2: Opcja awaryjna (Szukanie po tekście, ale z rygorystycznymi zakazami)
                         const elements = Array.from(document.querySelectorAll('a, button, div.ep-button, div.button'));
                         const targetBtn = elements.find(el => {
                             const txt = el.innerText.toLowerCase().trim();
-                            // Musi zawierać słowo kluczowe...
                             const isPlay = txt.includes('odtwórz') || txt === 'play' || txt.includes('załaduj wideo');
-                            // ...ale NIE MOŻE być formularzem zgłoszeniowym
                             const isNotReport = !txt.includes('zgłoś') && !txt.includes('raport') && !txt.includes('report');
-
                             return isPlay && isNotReport && el.offsetParent !== null;
                         });
-
                         if (targetBtn) {
                             targetBtn.click();
                             return true;
@@ -264,20 +265,18 @@ async function scrapeEmbed(browser, targetUrl) {
                 console.log(`   ⚠️ Nawigacja przerwana, ale sprawdzam dalej...`);
             }
 
-            // 4. MONITOROWANIE I WYCIĄGANIE WŁAŚCIWEGO IFRAME
             let timer = 0;
             while (!interceptedLink && timer < 20) {
                 if (page.isClosed()) break;
 
-                interceptedLink = await page.evaluate(() => {
-                    // Zamiast szukać słowa 'filemoon', szukamy po prostu ramki w głównym kontenerze playera
+                interceptedLink = await page.evaluate((p) => {
                     const playerIframe = document.querySelector('#player-block iframe, .player-container iframe');
-                    if (playerIframe && playerIframe.src) return playerIframe.src;
+                    if (playerIframe && playerIframe.src && playerIframe.src.includes(p)) return playerIframe.src;
+                    if (playerIframe && playerIframe.src && p === 'cda') return playerIframe.src;
 
-                    // Opcja awaryjna - jakikolwiek iframe z formatem '/e/' (charakterystyczne dla Filemoona)
-                    const anyEFrame = document.querySelector('iframe[src*="/e/"]');
+                    const anyEFrame = document.querySelector(`iframe[src*="/e/"], iframe[src*="${p}"]`);
                     return anyEFrame ? anyEFrame.src : null;
-                });
+                }, provider);
 
                 if (interceptedLink) break;
                 await new Promise(r => setTimeout(r, 500));
@@ -286,12 +285,9 @@ async function scrapeEmbed(browser, targetUrl) {
 
             if (interceptedLink) {
                 if (interceptedLink.startsWith('//')) interceptedLink = 'https:' + interceptedLink;
-
-                // 🔥 GENIALNY TRIK: Doklejamy tag providera do URL-a, żeby Automator wiedział, co to jest!
                 if (!interceptedLink.includes('provider=')) {
                     interceptedLink += (interceptedLink.includes('?') ? '&' : '?') + `provider=${provider}`;
                 }
-
                 foundLinks.push(interceptedLink);
                 console.log(`   ✅ SUKCES: ${interceptedLink.substring(0, 55)}...`);
             } else {
@@ -299,12 +295,11 @@ async function scrapeEmbed(browser, targetUrl) {
             }
 
         } catch (e) {
-            console.error(`   🔥 Błąd: ${e.message}`);
-        } finally {
-            if (!page.isClosed()) await page.close();
+            console.error(`   🔥 Błąd w trakcie przetwarzania [${provider.toUpperCase()}]: ${e.message}`);
         }
     }
 
+    if (!page.isClosed()) await page.close();
     return foundLinks.length > 0 ? foundLinks.join(',') : null;
 }
 

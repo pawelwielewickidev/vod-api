@@ -4,6 +4,7 @@ package com.pawel.vod_api.controller;
 
 import com.pawel.vod_api.dto.EpisodeDto;
 import com.pawel.vod_api.dto.WatchdogEpisodeDto;
+import com.pawel.vod_api.model.Episode;
 import com.pawel.vod_api.service.EpisodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -43,11 +44,11 @@ public class EpisodeController {
         return ResponseEntity.ok(episodeService.findAllAsDto());
     }
     @PutMapping("/{id}")
-    public ResponseEntity<WatchdogEpisodeDto> updateEpisode(
+    public ResponseEntity<Episode> updateEpisode(
             @PathVariable Long id,
             @RequestBody WatchdogEpisodeDto updateData) {
 
-        WatchdogEpisodeDto updated = episodeService.partialUpdate(id, updateData);
+        Episode updated = episodeService.partialUpdate(id, updateData);
         return ResponseEntity.ok(updated);
     }
     @PostMapping("/sync")

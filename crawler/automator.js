@@ -90,22 +90,31 @@ async function extractStreamData(browser, embedUrl) {
 async function extractFromCda(browser, embedUrl) {
     const page = await browser.newPage();
     let targetM3u8 = null;
+    let m3u8FoundPromise = new Promise(resolve => {
+        // Ustawiamy listenera na requesty przed włączeniem interceptora,
+        // aby mieć pewność, że żaden request nie zostanie pominięty.
+        page.on('request', request => {
+            const url = request.url();
+            if (url.includes('.m3u8')) {
+                targetM3u8 = url;
+                resolve(); // Rozwiązujemy Promise, gdy znajdziemy m3u8
+            }
+            // Kontynuujemy requesty, które nie są na czarnej liście
+            if (!blackList.some(word => url.toLowerCase().includes(word))) {
+                request.continue();
+            } else {
+                request.abort();
+            }
+        });
+    });
+
     await page.setRequestInterception(true);
 
     const blackList = ['reklama', 'pre-roll', 'ads', 'gemius', 'analytics'];
 
     page.on('request', request => {
-        const url = request.url();
-        if (blackList.some(word => url.toLowerCase().includes(word))) {
-            request.abort();
-            return;
-        }
-
-        // INTERESUJE NAS TYLKO KULOODPORNE M3U8
-        if (url.includes('.m3u8')) {
-            targetM3u8 = url;
-        }
-        request.continue();
+        // Ten listener jest teraz mniej istotny, ponieważ główny listener jest ustawiony wcześniej.
+        // Zostawiamy go na wypadek, gdyby requestInterception było włączone później.
     });
 
     try {
@@ -113,9 +122,14 @@ async function extractFromCda(browser, embedUrl) {
 
         const hdEmbedUrl = embedUrl.includes('?') ? `${embedUrl}&wersja=1080p` : `${embedUrl}?wersja=1080p`;
         await page.goto(hdEmbedUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
+        
+        // Czekamy na znalezienie m3u8 lub maksymalnie 6 sekund
+        // Używamy Promise.race, aby nie czekać dłużej niż to konieczne
+        await Promise.race([
+            m3u8FoundPromise,
+            new Promise(resolve => setTimeout(resolve, 6000)) // Maksymalny czas oczekiwania
+        ]);
         await page.mouse.click(400, 300);
-        await new Promise(r => setTimeout(r, 6000));
     } catch (err) {
         console.error('   ⚠️ [CDA] Błąd wczytywania playera:', err.message);
     } finally {
@@ -133,14 +147,23 @@ async function extractFromCda(browser, embedUrl) {
 async function extractFromDailymotion(browser, embedUrl) {
     const page = await browser.newPage();
     let m3u8Url = null;
+    let m3u8FoundPromise = new Promise(resolve => {
+        page.on('request', r => {
+            if (r.url().includes('.m3u8')) {
+                m3u8Url = r.url();
+                resolve();
+            }
+            r.continue();
+        });
+    });
     await page.setRequestInterception(true);
     page.on('request', r => {
-        if (r.url().includes('.m3u8')) m3u8Url = r.url();
-        r.continue();
+        // Ten listener jest teraz mniej istotny, ponieważ główny listener jest ustawiony wcześniej.
     });
     try {
         await page.goto(embedUrl, { waitUntil: 'networkidle2' });
-        await new Promise(r => setTimeout(r, 4000));
+        // Czekamy na znalezienie m3u8 lub maksymalnie 4 sekundy
+        await Promise.race([m3u8FoundPromise, new Promise(resolve => setTimeout(resolve, 4000))]);
     } finally {
         await page.close();
         return m3u8Url ? { url: m3u8Url, type: 'm3u8', quality: 'unknown', source: 'Dailymotion' } : null;
@@ -246,22 +269,34 @@ async function extractFromFilemoon(browser, embedUrl) {
 async function extractFromSibnet(browser, embedUrl) {
     const page = await browser.newPage();
     let targetUrl = null;
+    let targetUrlFoundPromise = new Promise(resolve => {
+        page.on('request', request => {
+            const url = request.url();
+            if (url.includes('.mp4') && url.includes('sibnet')) {
+                targetUrl = url;
+                resolve();
+            }
+            request.continue();
+        });
+    });
     await page.setRequestInterception(true);
 
     page.on('request', request => {
-        const url = request.url();
-        if (url.includes('.mp4') && url.includes('sibnet')) targetUrl = url;
-        request.continue();
+        // Ten listener jest teraz mniej istotny, ponieważ główny listener jest ustawiony wcześniej.
     });
 
     try {
         await page.setExtraHTTPHeaders({ 'Referer': 'https://video.sibnet.ru/' });
         await page.goto(embedUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await new Promise(r => setTimeout(r, 3000));
+        
+        // Czekamy na znalezienie targetUrl lub maksymalnie 3 sekundy
+        await Promise.race([targetUrlFoundPromise, new Promise(resolve => setTimeout(resolve, 3000))]);
 
         if (!targetUrl) {
+            // Jeśli nie znaleziono po początkowym oczekiwaniu, spróbuj kliknąć
             await page.mouse.click(400, 300);
-            await new Promise(r => setTimeout(r, 3000));
+            // Czekamy ponownie po kliknięciu
+            await Promise.race([targetUrlFoundPromise, new Promise(resolve => setTimeout(resolve, 3000))]);
         }
     } catch (err) {
         console.error('   ⚠️ [SIBNET] Błąd wczytywania playera:', err.message);
@@ -307,31 +342,32 @@ async function startAutomator() {
             const ep = episodesToProcess[i];
             console.log(`⏳ [${i + 1}/${episodesToProcess.length}] Odcinek ${ep.episode_number}: ${ep.title}`);
 
-            // Jeśli linki są po przecinku (CDA, Sibnet), rozdzielamy je na tablicę
             const embedUrls = ep.source_embed_url.split(',').map(url => url.trim());
-            let gatheredStreams = [];
 
-            // Sprawdzamy każdy link po kolei
-            for (const embed of embedUrls) {
+            // Używamy Promise.all do równoległego przetwarzania wszystkich embedUrls dla danego odcinka
+            const streamPromises = embedUrls.map(async (embed) => {
                 console.log(`   🔎 Skanuję źródło embeda: ${embed.split('/')[2]}`);
                 const streamData = await extractStreamData(browser, embed);
 
                 if (streamData) {
                     console.log(`   🔬 Wykonuję Acid Test dla wyciągniętego pliku ${streamData.type.toUpperCase()}...`);
-
-                    // WERYFIKACJA HTTP ZANIM NADAMY PUNKTY
                     const isLinkAlive = await verifyVideoLink(streamData.url, streamData.source);
 
                     if (isLinkAlive) {
-                        streamData.score = calculateScore(streamData); // Nadajemy punkty
-                        gatheredStreams.push(streamData);
+                        streamData.score = calculateScore(streamData);
                         console.log(`   ✅ Link jest aktywny! Przyznano punktów: ${streamData.score}`);
+                        return streamData; // Zwracamy streamData, jeśli test przeszedł
                     } else {
                         console.log(`   ❌ Link odrzucony przez Acid Test (Zablokowany przez serwer docelowy).`);
+                        return null; // Zwracamy null, jeśli test nie przeszedł
                     }
                 }
-            }
+                return null; // Zwracamy null, jeśli extractStreamData nie zwróciło danych
+            });
 
+            // Czekamy na zakończenie wszystkich równoległych operacji i filtrujemy null-e
+            const gatheredStreams = (await Promise.all(streamPromises)).filter(stream => stream !== null);
+            
             // Rozstrzygnięcie pojedynku
             if (gatheredStreams.length > 0) {
                 // Sortujemy by najwyższy wynik był na indeksie 0
