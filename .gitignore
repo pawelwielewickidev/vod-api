@@ -38,4 +38,5 @@ out/
 media/*
 !media/.gitkeep
 
-
+### Configuration files ###
+backend/src/main/resources/application-dev.properties
