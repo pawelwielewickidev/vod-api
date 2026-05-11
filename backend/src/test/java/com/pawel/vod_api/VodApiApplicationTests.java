@@ -4,17 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-// Nadpisujemy parametry TYLKO dla tego testu
-@SpringBootTest(properties = {
-		"spring.jpa.hibernate.ddl-auto=update", // Kluczowe: Hibernate stworzy tabele, jeśli ich brakuje
-		"spring.flyway.enabled=true",           // Upewniamy się, że Flyway jest włączony
-		"spring.flyway.baseline-on-migrate=false" // Na czystym GitHubie nie chcemy baseline
-})
+@SpringBootTest
+@ActiveProfiles("test") // Aktywacja profilu 'test'
 class VodApiApplicationTests {
 
 	@Test
 	void contextLoads() {
-		// Ten test sprawdza tylko, czy kontekst Springa wstaje.
-		// Przy ddl-auto=update na pewno wstanie.
+		// Ten test sprawdza, czy kontekst Springa wstaje
+		// przy użyciu konfiguracji z application-test.properties.
 	}
 }
