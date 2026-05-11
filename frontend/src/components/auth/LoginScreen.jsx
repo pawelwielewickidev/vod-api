@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +18,7 @@ const LoginScreen = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/auth/authenticate",
+        `${API_BASE_URL}/api/auth/authenticate`,
         {
           method: "POST",
           headers: {

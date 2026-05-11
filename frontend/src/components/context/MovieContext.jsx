@@ -6,6 +6,7 @@ import {
   useCallback,
 } from "react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const MovieContext = createContext();
 
 export const MovieProvider = ({ children }) => {
@@ -21,7 +22,7 @@ export const MovieProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch("http://localhost:8080/api/movies", {
+      const response = await fetch(`${API_BASE_URL}/api/movies`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

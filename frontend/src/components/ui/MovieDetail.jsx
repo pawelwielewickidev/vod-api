@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Star, Play, Bookmark, Share2 } from "lucide-react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function MovieDetail() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
@@ -11,7 +13,7 @@ export default function MovieDetail() {
   useEffect(() => {
     const token = localStorage.getItem("vod_token");
 
-    fetch(`http://localhost:8080/api/movies/${id}`, {
+    fetch(`${API_BASE_URL}/api/movies/${id}`, {
       headers: token
         ? {
             Authorization: `Bearer ${token}`,
@@ -46,7 +48,7 @@ export default function MovieDetail() {
     const loadBackground = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8080/api/movies/${movie.id}/bg`,
+          `${API_BASE_URL}/api/movies/${movie.id}/bg`,
           {
             headers,
             signal: controller.signal,

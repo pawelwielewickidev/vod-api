@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import MovieRow from "./MovieRow";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function MovieGrid() {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const token = localStorage.getItem("vod_token");
-      const res = await fetch("http://localhost:8080/api/categories", {
+      const res = await fetch(`${API_BASE_URL}/api/categories`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Błąd ładowania kategorii");

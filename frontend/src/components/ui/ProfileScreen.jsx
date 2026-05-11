@@ -1,6 +1,8 @@
 import React, { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState([]);
@@ -32,7 +34,7 @@ const ProfileScreen = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/${user.id}/profiles`,
+        `${API_BASE_URL}/api/users/${user.id}/profiles`,
         {
           method: "POST",
           headers: {
@@ -65,7 +67,7 @@ const ProfileScreen = () => {
           return;
         }
 
-        const response = await fetch(`http://localhost:8080/api/users/me`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: {
             method: "GET",
             Authorization: `Bearer ${token}`,
@@ -106,7 +108,7 @@ const ProfileScreen = () => {
     const token = localStorage.getItem("vod_token");
     const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
 
-    fetch(`http://localhost:8080/api/users/${user.id}/profiles`, {
+    fetch(`${API_BASE_URL}/api/users/${user.id}/profiles`, {
       headers: {
         "Content-Type": "application/json",
         ...authHeader,
@@ -146,7 +148,7 @@ const ProfileScreen = () => {
     });
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/${user.id}/profiles/${editingProfile.id}`,
+        `${API_BASE_URL}/api/users/${user.id}/profiles/${editingProfile.id}`,
         {
           method: "PUT",
           headers: {
@@ -188,7 +190,7 @@ const ProfileScreen = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/${user.id}/profiles/${editingProfile.id}`,
+        `${API_BASE_URL}/api/users/${user.id}/profiles/${editingProfile.id}`,
         {
           method: "DELETE",
           headers: {

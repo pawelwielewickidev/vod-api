@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import CustomPlayer from "../ui/CustomPlayer";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function EpisodeStream() {
   const { movieId, episodeId } = useParams();
   const navigate = useNavigate();
@@ -23,7 +25,7 @@ export default function EpisodeStream() {
         }
 
         const response = await fetch(
-          `http://localhost:8080/api/movies/${movieId}`,
+          `${API_BASE_URL}/api/movies/${movieId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -63,7 +65,7 @@ export default function EpisodeStream() {
   // 2. Generujemy URL do Twojego backendu (Proxy/Redirect)
   // Zauważ: nie robimy tu już fetch(), po prostu tworzymy stringa z adresem
   const streamUrl = episode 
-    ? `http://localhost:8080/api/v1/watch/${episode.id}` 
+    ? `${API_BASE_URL}/api/v1/watch/${episode.id}` 
     : null;
 
   if (loading)

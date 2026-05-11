@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import TmdbImage from "./TmbdImage";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function MovieRow({ categoryId, categoryName }) {
   const rowRef = useRef(null);
 
@@ -22,7 +24,7 @@ export default function MovieRow({ categoryId, categoryName }) {
         });
 
         const res = await fetch(
-          `http://localhost:8080/api/movies/search/category?${params}`,
+          `${API_BASE_URL}/api/movies/search/category?${params}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
