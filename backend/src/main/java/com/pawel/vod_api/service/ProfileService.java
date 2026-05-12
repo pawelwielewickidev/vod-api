@@ -26,15 +26,21 @@ public class ProfileService {
            throw new ProfileLimitExceededException("Osiągnięto maksymalną liczbę profili (5)");
        }
         Profile profile = new Profile();
-       profile.setProfileName(profileDto.getProfileName());
-       profile.setAvatarUrl(profileDto.getAvatarUrl());
-       profile.setUser(user);
-       user.getProfiles().add(profile);
+        profile.setProfileName(profileDto.getProfileName());
+        profile.setAvatarUrl(profileDto.getAvatarUrl());
+        profile.setUser(user);
+        user.getProfiles().add(profile);
 
-       userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-       return new ProfileResponseDto(null, profile.getProfileName(), profile.getAvatarUrl());
-       }
+        Profile savedProfile = savedUser.getProfiles().stream()
+                .filter(p -> p.getProfileName().equals(profile.getProfileName())
+                        && p.getAvatarUrl().equals(profile.getAvatarUrl()))
+                .reduce((first, second) -> second)
+                .orElse(profile);
+
+        return new ProfileResponseDto(savedProfile.getId(), savedProfile.getProfileName(), savedProfile.getAvatarUrl());
+    }
     public List<ProfileResponseDto> getAllProfiles(Long userId){
         User user = userRepository.findById(userId).orElseThrow(
                 ()-> new ResourceNotFoundException("Brak użytkownika o ID:" + userId)

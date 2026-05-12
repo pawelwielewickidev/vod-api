@@ -11,4 +11,5 @@ public class WatchlistResponseDto {
     private Long id;
     private String profileName;
     private String movieTitle;
+    private MovieResponseDto movie;
 }

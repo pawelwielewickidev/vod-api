@@ -42,7 +42,9 @@ export default function Navbar() {
         </div>
         <div className="hidden relative lg:flex items-center justify-center h-full w-16 text-sm text-gray-300  hover:bg-neutral-900 transition-colors">
           <button
+            type="button"
             title="My Watchlist"
+            onClick={() => navigate("/watchlist")}
             className="h-full w-full pl-5 text-neutral-400 hover:text-white transition-colors duration-200"
           >
             <Bookmark className="w-6 h-6" />
