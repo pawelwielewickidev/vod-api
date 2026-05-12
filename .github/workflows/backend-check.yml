@@ -95,4 +95,4 @@ jobs:
             --add-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
             --min-instances=0 \
             --max-instances=2 \
-            --memory=512Mi
+            --memory=1024Mi
