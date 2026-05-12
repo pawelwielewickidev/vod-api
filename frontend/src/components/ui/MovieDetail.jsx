@@ -1,14 +1,58 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Star, Play, Bookmark, Share2 } from "lucide-react";
+import { ChevronLeft, Star, Play, Plus, Minus, Share2 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const getStoredJson = (key) => {
+  const value = localStorage.getItem(key);
+
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 export default function MovieDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bgUrl, setBgUrl] = useState("");
+  const [isUpdatingWatchlist, setIsUpdatingWatchlist] = useState(false);
+  const [watchlistMessage, setWatchlistMessage] = useState("");
+
+  const token = localStorage.getItem("vod_token");
+  const user = getStoredJson("user");
+  const profile = getStoredJson("selected_profile");
+  const hasWatchlistData = Boolean(token && user?.id && profile?.id);
+
+  const { data: watchlist = [] } = useQuery({
+    queryKey: ["watchlist", user?.id, profile?.id],
+    enabled: hasWatchlistData,
+    queryFn: async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/${user.id}/profiles/${profile.id}/watchlists`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Nie udało się pobrać watchlisty.");
+      }
+
+      return response.json();
+    },
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("vod_token");
@@ -84,6 +128,63 @@ export default function MovieDetail() {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [movie]);
+
+  const isMovieInWatchlist = watchlist.some(
+    (item) => item.movie?.id === movie?.id,
+  );
+
+  const handleToggleWatchlist = async () => {
+    if (!movie) {
+      return;
+    }
+
+    if (!hasWatchlistData) {
+      setWatchlistMessage("Wybierz profil i zaloguj się ponownie.");
+      return;
+    }
+
+    setIsUpdatingWatchlist(true);
+    setWatchlistMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/${user.id}/profiles/${profile.id}/watchlists/${movie.id}`,
+        {
+          method: isMovieInWatchlist ? "DELETE" : "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.status === 409) {
+        setWatchlistMessage("Ten film jest już na Twojej liście.");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          isMovieInWatchlist
+            ? "Nie udało się usunąć filmu z watchlisty."
+            : "Nie udało się dodać filmu do watchlisty.",
+        );
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["watchlist", user.id, profile.id],
+      });
+
+      setWatchlistMessage(
+        isMovieInWatchlist ? "Usunięto z watchlisty." : "Dodano do watchlisty.",
+      );
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji watchlisty:", error);
+      setWatchlistMessage(error.message);
+    } finally {
+      setIsUpdatingWatchlist(false);
+    }
+  };
 
   if (loading)
     return (
@@ -165,13 +266,32 @@ export default function MovieDetail() {
                 <Play fill="currentColor" /> START WATCHING
               </button>
             )}
-            <button className="h-12 w-12 p-3 border border-neutral-300 hover:bg-neutral-500 rounded-xs transition-colors">
-              <Bookmark />
+            <button
+              type="button"
+              onClick={handleToggleWatchlist}
+              disabled={isUpdatingWatchlist}
+              title={
+                isMovieInWatchlist ? "Usuń z watchlisty" : "Dodaj do watchlisty"
+              }
+              aria-label={
+                isMovieInWatchlist ? "Usuń z watchlisty" : "Dodaj do watchlisty"
+              }
+              className={`h-12 w-12 p-3 border rounded-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                isMovieInWatchlist
+                  ? "border-red-500 text-red-500 hover:bg-red-600 hover:border-red-600 hover:text-white"
+                  : "border-[#F47521] text-[#F47521] hover:bg-[#F47521] hover:text-white"
+              }`}
+            >
+              {isMovieInWatchlist ? <Minus size={20} /> : <Plus size={20} />}
             </button>
             <button className="h-12 w-12 p-3 border border-neutral-300 hover:bg-neutral-500 rounded-xs transition-colors">
               <Share2 size={20} />
             </button>
           </div>
+
+          {watchlistMessage && (
+            <p className="mt-3 text-sm text-neutral-300">{watchlistMessage}</p>
+          )}
         </div>
       </div>
 

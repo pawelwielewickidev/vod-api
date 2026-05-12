@@ -1,35 +1,119 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const DEFAULT_AVATAR_URL = "/avatar/avatar1.png";
+
+const normalizeAvatarUrl = (avatarUrl) => {
+  if (!avatarUrl || typeof avatarUrl !== "string") {
+    return DEFAULT_AVATAR_URL;
+  }
+
+  if (
+    avatarUrl.startsWith("http://") ||
+    avatarUrl.startsWith("https://") ||
+    avatarUrl.startsWith("data:")
+  ) {
+    return avatarUrl;
+  }
+
+  return avatarUrl.startsWith("/") ? avatarUrl : `/${avatarUrl}`;
+};
+
+const AvatarImage = ({ src, alt, className }) => {
+  const [hasError, setHasError] = useState(false);
+
+  const normalizedSrc = normalizeAvatarUrl(src);
+  const imageSrc = hasError ? DEFAULT_AVATAR_URL : normalizedSrc;
+
+  useEffect(() => {
+    setHasError(false);
+  }, [normalizedSrc]);
+
+  return (
+    <img
+      key={imageSrc}
+      src={imageSrc}
+      alt={alt}
+      onError={() => setHasError(true)}
+      className={className}
+    />
+  );
+};
+
 const ProfileScreen = () => {
   const navigate = useNavigate();
+
   const [profiles, setProfiles] = useState([]);
   const [user, setUser] = useState(null);
+
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState("/avatar1.png");
+  const [selectedAvatar, setSelectedAvatar] = useState(DEFAULT_AVATAR_URL);
+
   const [isManaging, setIsManaging] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editAvatar, setEditAvatar] = useState("");
+  const [editAvatar, setEditAvatar] = useState(DEFAULT_AVATAR_URL);
 
   const avatarOptions = [
-    "avatar/avatar1.png",
-    "avatar/avatar2.png",
-    "avatar/avatar3.png",
-    "avatar/avatar4.png",
-    "avatar/avatar5.png",
-    "avatar/avatar6.png",
-    "avatar/avatar7.png",
-    "avatar/avatar8.png",
-    "avatar/avatar9.png",
-    "avatar/avatar10.png",
+    "/avatar/avatar1.png",
+    "/avatar/avatar2.png",
+    "/avatar/avatar3.png",
+    "/avatar/avatar4.png",
+    "/avatar/avatar5.png",
+    "/avatar/avatar6.png",
+    "/avatar/avatar7.png",
+    "/avatar/avatar8.png",
+    "/avatar/avatar9.png",
+    "/avatar/avatar10.png",
   ];
+
+  const getSelectedProfile = () => {
+    const savedProfile = localStorage.getItem("selected_profile");
+
+    if (!savedProfile) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(savedProfile);
+    } catch {
+      localStorage.removeItem("selected_profile");
+      return null;
+    }
+  };
+
+  const updateSelectedProfileIfNeeded = (updatedProfile) => {
+    const selectedProfile = getSelectedProfile();
+
+    if (selectedProfile?.id === updatedProfile.id) {
+      localStorage.setItem(
+        "selected_profile",
+        JSON.stringify({
+          ...updatedProfile,
+          avatarUrl: normalizeAvatarUrl(updatedProfile.avatarUrl),
+        }),
+      );
+    }
+  };
+
+  const clearSelectedProfileIfNeeded = (profileId) => {
+    const selectedProfile = getSelectedProfile();
+
+    if (selectedProfile?.id === profileId) {
+      localStorage.removeItem("selected_profile");
+    }
+  };
 
   const handleCreateProfile = async (e) => {
     e.preventDefault();
+
+    if (!user?.id) {
+      return;
+    }
+
     const token = localStorage.getItem("vod_token");
 
     try {
@@ -42,17 +126,28 @@ const ProfileScreen = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            profileName: newProfileName,
-            avatarUrl: selectedAvatar,
+            profileName: newProfileName.trim(),
+            avatarUrl: normalizeAvatarUrl(selectedAvatar),
           }),
         },
       );
-      if (response.ok) {
-        const newProfile = await response.json();
-        setProfiles((prev) => [...prev, newProfile]);
-        setIsCreatingProfile(false);
-        setNewProfileName("");
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status: ${response.status}`);
       }
+
+      const newProfile = await response.json();
+
+      setProfiles((prev) => [
+        ...prev,
+        {
+          ...newProfile,
+          avatarUrl: normalizeAvatarUrl(newProfile.avatarUrl),
+        },
+      ]);
+      setIsCreatingProfile(false);
+      setNewProfileName("");
+      setSelectedAvatar(DEFAULT_AVATAR_URL);
     } catch (error) {
       console.error("Error creating profile:", error);
     }
@@ -62,27 +157,30 @@ const ProfileScreen = () => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem("vod_token");
+
         if (!token) {
           navigate("/login");
           return;
         }
 
         const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+          method: "GET",
           headers: {
-            method: "GET",
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
         if (response.status === 400) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => null);
           console.error("Bad Request Details:", errorData);
           throw new Error("Bad Request: Check token format or server logs.");
         }
 
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem("vod_token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("selected_profile");
           navigate("/login");
           return;
         }
@@ -93,6 +191,7 @@ const ProfileScreen = () => {
 
         const data = await response.json();
         setUser(data);
+        localStorage.setItem("user", JSON.stringify(data));
       } catch (err) {
         console.error("Error loading user:", err);
       }
@@ -102,50 +201,67 @@ const ProfileScreen = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) {
+      return;
+    }
 
     const controller = new AbortController();
     const token = localStorage.getItem("vod_token");
-    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
 
-    fetch(`${API_BASE_URL}/api/users/${user.id}/profiles`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader,
-      },
-      signal: controller.signal,
-    })
-      .then((response) => {
+    const fetchProfiles = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/${user.id}/profiles`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            signal: controller.signal,
+          },
+        );
+
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem("vod_token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("selected_profile");
           navigate("/login");
           return;
         }
+
         if (!response.ok) {
           throw new Error(`HTTP Error: ${response.status}`);
         }
-        return response.json();
-      })
-      .then((data) => {
-        setProfiles(data);
-      })
-      .catch((err) => {
+
+        const data = await response.json();
+
+        setProfiles(
+          data.map((profile) => ({
+            ...profile,
+            avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
+          })),
+        );
+      } catch (err) {
         if (err.name !== "AbortError") {
           console.error("Error loading profiles:", err);
         }
-      });
+      }
+    };
+
+    fetchProfiles();
 
     return () => controller.abort();
   }, [user, navigate]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (!user?.id || !editingProfile?.id) {
+      return;
+    }
+
     const token = localStorage.getItem("vod_token");
-    console.log("Updating profile with:", {
-      profileName: editName,
-      avatarUrl: editAvatar,
-      profileId: editingProfile.id,
-    });
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/users/${user.id}/profiles/${editingProfile.id}`,
@@ -156,29 +272,47 @@ const ProfileScreen = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            profileName: editName,
-            avatarUrl: editAvatar,
+            profileName: editName.trim(),
+            avatarUrl: normalizeAvatarUrl(editAvatar),
           }),
         },
       );
+
       if (response.status === 404) {
         alert("The profile you are trying to update could not be found.");
-      } else if (!response.ok) {
+        return;
+      }
+
+      if (!response.ok) {
         throw new Error(`Request failed with status: ${response.status}`);
       }
-      if (response.ok) {
-        const updatedProfile = await response.json();
-        setProfiles((prev) =>
-          prev.map((p) => (p.id === editingProfile.id ? updatedProfile : p)),
-        );
-        setEditingProfile(null);
-      }
+
+      const updatedProfileFromApi = await response.json();
+      const updatedProfile = {
+        ...updatedProfileFromApi,
+        avatarUrl: normalizeAvatarUrl(updatedProfileFromApi.avatarUrl),
+      };
+
+      setProfiles((prev) =>
+        prev.map((profile) =>
+          profile.id === editingProfile.id ? updatedProfile : profile,
+        ),
+      );
+
+      updateSelectedProfileIfNeeded(updatedProfile);
+      setEditingProfile(null);
+      setEditName("");
+      setEditAvatar(DEFAULT_AVATAR_URL);
     } catch (error) {
       console.error("Error updating profile:", error);
     }
   };
 
-  const handleDeleteProfile = async (profileId) => {
+  const handleDeleteProfile = async () => {
+    if (!user?.id || !editingProfile?.id) {
+      return;
+    }
+
     if (
       !window.confirm(
         `Are you sure you want to delete the profile: ${editingProfile.profileName}?`,
@@ -186,6 +320,7 @@ const ProfileScreen = () => {
     ) {
       return;
     }
+
     const token = localStorage.getItem("vod_token");
 
     try {
@@ -198,19 +333,35 @@ const ProfileScreen = () => {
           },
         },
       );
-      if (response.status === 204) {
-        setEditingProfile(null);
-        setProfiles((prevProfiles) =>
-          prevProfiles.filter((profile) => profile.id !== editingProfile.id),
-        );
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Request failed with status: ${response.status}`);
       }
+
+      const deletedProfileId = editingProfile.id;
+
+      setProfiles((prevProfiles) =>
+        prevProfiles.filter((profile) => profile.id !== deletedProfileId),
+      );
+
+      clearSelectedProfileIfNeeded(deletedProfileId);
+      setEditingProfile(null);
+      setEditName("");
+      setEditAvatar(DEFAULT_AVATAR_URL);
     } catch (error) {
       console.error("Error deleting profile:", error);
     }
   };
 
   const handleSelectProfile = (profile) => {
-    localStorage.setItem("selected_profile", JSON.stringify(profile));
+    localStorage.setItem(
+      "selected_profile",
+      JSON.stringify({
+        ...profile,
+        avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
+      }),
+    );
+
     navigate("/home");
   };
 
@@ -218,7 +369,7 @@ const ProfileScreen = () => {
     if (isManaging) {
       setEditingProfile(profile);
       setEditName(profile.profileName);
-      setEditAvatar(profile.avatarUrl);
+      setEditAvatar(normalizeAvatarUrl(profile.avatarUrl));
     } else {
       handleSelectProfile(profile);
     }
@@ -235,6 +386,7 @@ const ProfileScreen = () => {
           backgroundPosition: "center",
         }}
       ></div>
+
       {isCreatingProfile ? (
         <div className="z-10 w-full max-w-3xl text-center px-4">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-10">
@@ -242,7 +394,6 @@ const ProfileScreen = () => {
           </h1>
 
           <form onSubmit={handleCreateProfile} className="space-y-12">
-            {/* Pole na nazwę profilu */}
             <div>
               <input
                 type="text"
@@ -255,15 +406,14 @@ const ProfileScreen = () => {
               />
             </div>
 
-            {/* Wybór awatara */}
             <div>
               <h2 className="text-gray-400 text-lg font-medium mb-6 uppercase tracking-widest">
                 Choose avatar
               </h2>
               <div className="flex flex-wrap justify-center gap-6">
-                {avatarOptions.map((path, index) => (
+                {avatarOptions.map((path) => (
                   <div
-                    key={index}
+                    key={path}
                     onClick={() => setSelectedAvatar(path)}
                     className={`w-24 h-24 md:w-28 md:h-28 rounded-full p-1 cursor-pointer transition-all duration-300 transform ${
                       selectedAvatar === path
@@ -271,21 +421,24 @@ const ProfileScreen = () => {
                         : "border-4 border-transparent opacity-50 hover:opacity-100 hover:scale-105"
                     }`}
                   >
-                    <img
+                    <AvatarImage
                       src={path}
                       className="w-full h-full rounded-full bg-gray-800 object-cover"
-                      alt="Opcja awatara"
+                      alt="Avatar option"
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Przyciski */}
             <div className="flex justify-center items-center gap-6 pt-4">
               <button
                 type="button"
-                onClick={() => setIsCreatingProfile(false)}
+                onClick={() => {
+                  setIsCreatingProfile(false);
+                  setNewProfileName("");
+                  setSelectedAvatar(DEFAULT_AVATAR_URL);
+                }}
                 className="border border-gray-400 text-gray-400 font-semibold px-8 py-3 rounded-lg hover:text-white hover:border-orange-500 transition-colors"
               >
                 Cancel
@@ -318,7 +471,6 @@ const ProfileScreen = () => {
               />
             </div>
 
-            {/* Wybór awatara (używa Twojej tablicy availableAvatars) */}
             <div>
               <h2 className="text-gray-400 text-lg font-medium mb-6 uppercase tracking-widest">
                 Change Avatar
@@ -334,21 +486,24 @@ const ProfileScreen = () => {
                         : "border-4 border-transparent opacity-50 hover:opacity-100 hover:scale-105"
                     }`}
                   >
-                    <img
+                    <AvatarImage
                       src={path}
                       className="w-full h-full rounded-full bg-gray-800 object-cover"
-                      alt="Opcja awatara"
+                      alt="Avatar option"
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Przyciski: Anuluj, Usuń, Zapisz */}
             <div className="flex justify-center items-center gap-4 pt-4 flex-wrap">
               <button
                 type="button"
-                onClick={() => setEditingProfile(null)} // Wychodzimy z edycji
+                onClick={() => {
+                  setEditingProfile(null);
+                  setEditName("");
+                  setEditAvatar(DEFAULT_AVATAR_URL);
+                }}
                 className="border border-gray-600 text-gray-400 font-semibold px-6 py-3 rounded hover:text-white hover:border-orange-500 transition-colors"
               >
                 Cancel
@@ -356,7 +511,7 @@ const ProfileScreen = () => {
 
               <button
                 type="button"
-                onClick={handleDeleteProfile} // Funkcja usuwania
+                onClick={handleDeleteProfile}
                 className="border border-red-900 bg-red-900/30 text-red-500 font-semibold px-6 py-3 rounded hover:bg-red-800 hover:text-white hover:border-red-800 transition-colors"
               >
                 Delete Profile
@@ -378,7 +533,7 @@ const ProfileScreen = () => {
             Who is watching?
           </h1>
 
-          <div className="flex justify-center gap-6 md:gap-10">
+          <div className="flex justify-center gap-6 md:gap-10 flex-wrap">
             {profiles.map((profile) => (
               <div
                 key={profile.id}
@@ -386,13 +541,14 @@ const ProfileScreen = () => {
                 className="group flex flex-col items-center cursor-pointer"
               >
                 <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-transparent group-hover:border-orange-500 transition-all duration-300 transform group-hover:scale-105 shadow-lg">
-                  <img
+                  <AvatarImage
                     src={profile.avatarUrl}
                     alt={profile.profileName}
                     className="w-full h-full object-cover bg-amber-800"
                   />
+
                   {isManaging && (
-                    <div className="absolute inset-0 flex justify-center items-center">
+                    <div className="absolute inset-0 flex justify-center items-center bg-black/30">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-12 w-12 text-white"
@@ -416,6 +572,7 @@ const ProfileScreen = () => {
                 </span>
               </div>
             ))}
+
             {!isManaging && (
               <div
                 onClick={() => setIsCreatingProfile(true)}

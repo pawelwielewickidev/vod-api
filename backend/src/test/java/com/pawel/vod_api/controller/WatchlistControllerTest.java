@@ -58,6 +58,7 @@ public class WatchlistControllerTest {
         MovieResponseDto movie = new MovieResponseDto();
         movie.setId(1L);
         movie.setTitle("Test Movie");
+        movie.setThumbnailPath("/test-thumbnail.jpg");
 
         UserResponseDto user = new UserResponseDto();
         user.setId(1L);
@@ -70,15 +71,19 @@ public class WatchlistControllerTest {
         watchlist.setId(1L);
         watchlist.setMovieTitle(movie.getTitle());
         watchlist.setProfileName(profile.getProfileName());
+        watchlist.setMovie(movie);
 
         Mockito.when(watchlistService.addToWatchlist(1L, 1L, 1L)).thenReturn(watchlist);
 
         mockMvc.perform(post("/api/users/1/profiles/1/watchlists/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(watchlist)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(watchlist)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.profileName").value("Test Profile"))
-                .andExpect(jsonPath("$.movieTitle").value("Test Movie"));
+                .andExpect(jsonPath("$.movieTitle").value("Test Movie"))
+                .andExpect(jsonPath("$.movie.id").value(1))
+                .andExpect(jsonPath("$.movie.title").value("Test Movie"))
+                .andExpect(jsonPath("$.movie.thumbnailPath").value("/test-thumbnail.jpg"));
     }
     @Test
     @WithMockUser(username = "admin@admin.com", roles = {"USER"})
@@ -89,18 +94,24 @@ public class WatchlistControllerTest {
         profile.setId(1L);
         profile.setProfileName("Test Profile");
         MovieResponseDto movie = new MovieResponseDto();
+        movie.setId(1L);
         movie.setTitle("Test Movie");
+        movie.setThumbnailPath("/test-thumbnail.jpg");
 
         WatchlistResponseDto watchlist = new WatchlistResponseDto();
         watchlist.setId(1L);
         watchlist.setMovieTitle(movie.getTitle());
         watchlist.setProfileName(profile.getProfileName());
+        watchlist.setMovie(movie);
         Mockito.when(watchlistService.getWatchlist(1L, 1L)).thenReturn(List.of(watchlist));
 
         mockMvc.perform(get("/api/users/1/profiles/1/watchlists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].profileName").value("Test Profile"))
-                .andExpect(jsonPath("$[0].movieTitle").value("Test Movie"));
+                .andExpect(jsonPath("$[0].movieTitle").value("Test Movie"))
+                .andExpect(jsonPath("$[0].movie.id").value(1))
+                .andExpect(jsonPath("$[0].movie.title").value("Test Movie"))
+                .andExpect(jsonPath("$[0].movie.thumbnailPath").value("/test-thumbnail.jpg"));
     }
     @Test
     @WithMockUser(username = "admin@admin.com", roles = {"USER"})

@@ -15,9 +15,13 @@ export const MovieProvider = ({ children }) => {
   const [error, setError] = useState("");
 
   const fetchMovies = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+
     try {
       const token = localStorage.getItem("vod_token");
       if (!token) {
+        setMovies([]);
         setIsLoading(false);
         return;
       }

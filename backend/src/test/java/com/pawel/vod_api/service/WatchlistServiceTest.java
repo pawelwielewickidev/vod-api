@@ -13,12 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 public class WatchlistServiceTest {
@@ -80,5 +80,40 @@ public class WatchlistServiceTest {
         Mockito.verify(userRepository, Mockito.times(1)).save(user);
 
 
+    }
+    @Test
+    void shouldReturnWatchlistWithMovieDetails() {
+        Movie movie = new Movie();
+        movie.setId(1L);
+        movie.setTitle("Test Movie");
+        movie.setThumbnailPath("/test-thumbnail.jpg");
+
+        Profile profile = new Profile();
+        profile.setId(10L);
+        profile.setProfileName("Test Profile");
+
+        Watchlist watchlist = new Watchlist();
+        watchlist.setId(100L);
+        watchlist.setMovie(movie);
+        watchlist.setProfile(profile);
+
+        profile.setWatchlists(List.of(watchlist));
+
+        User user = new User();
+        user.setId(1L);
+        user.setProfiles(List.of(profile));
+
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        var result = watchlistService.getWatchlist(user.getId(), profile.getId());
+
+        assertEquals(1, result.size());
+        assertEquals(100L, result.get(0).getId());
+        assertEquals("Test Profile", result.get(0).getProfileName());
+        assertEquals("Test Movie", result.get(0).getMovieTitle());
+        assertNotNull(result.get(0).getMovie());
+        assertEquals(1L, result.get(0).getMovie().getId());
+        assertEquals("Test Movie", result.get(0).getMovie().getTitle());
+        assertEquals("/test-thumbnail.jpg", result.get(0).getMovie().getThumbnailPath());
     }
 }

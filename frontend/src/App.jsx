@@ -16,11 +16,18 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import WelcomeScreen from "./components/ui/WelcomeScreen";
 import RegisterScreen from "./components/auth/RegisterScreen";
 import ProfileScreen from "./components/ui/ProfileScreen";
-import { MovieProvider } from "./components/context/MovieContext";
+import MyWatchlist from "./components/ui/Watchlist/MyWatchlist";
+import { MovieProvider, useMovies } from "./components/context/MovieContext";
 
 const queryClient = new QueryClient();
 
 function Home() {
+  const { refreshMovies } = useMovies();
+
+  useEffect(() => {
+    refreshMovies();
+  }, [refreshMovies]);
+
   return (
     <>
       <HeroSection />
@@ -63,6 +70,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute>
+              <MyWatchlist />
             </ProtectedRoute>
           }
         />

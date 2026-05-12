@@ -1,5 +1,6 @@
 package com.pawel.vod_api.service;
 
+import com.pawel.vod_api.dto.MovieResponseDto;
 import com.pawel.vod_api.dto.WatchlistResponseDto;
 import com.pawel.vod_api.exception.DuplicateResourceException;
 import com.pawel.vod_api.exception.ResourceNotFoundException;
@@ -39,7 +40,7 @@ public class WatchlistService {
         newMovie.setProfile(profile);
 
         Watchlist savedItem = watchlistRepository.save(newMovie);
-        return new WatchlistResponseDto(savedItem.getId(), profile.getProfileName(), movie.getTitle());
+        return toWatchlistResponseDto(savedItem);
     }
 
     public List<WatchlistResponseDto> getWatchlist(Long userId, Long profileId){
@@ -52,8 +53,7 @@ public class WatchlistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono profilu"));
 
         return profile.getWatchlists().stream()
-                .map(watchlist -> new WatchlistResponseDto(watchlist.getId(), watchlist.getProfile().getProfileName(), watchlist.getMovie().getTitle()
-                ))
+                .map(this::toWatchlistResponseDto)
                 .toList();
     }
 
@@ -66,11 +66,40 @@ public class WatchlistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono profilu"));
 
         Watchlist watchlist = profile.getWatchlists().stream()
-                        .filter(m -> m.getMovie().getId().equals(movieId))
+                .filter(m -> m.getMovie().getId().equals(movieId))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono filmu"));
         profile.getWatchlists().remove(watchlist);
 
         userRepository.save(user);
+    }
+
+    private WatchlistResponseDto toWatchlistResponseDto(Watchlist watchlist) {
+        Movie movie = watchlist.getMovie();
+
+        return new WatchlistResponseDto(
+                watchlist.getId(),
+                watchlist.getProfile().getProfileName(),
+                movie.getTitle(),
+                toMovieResponseDto(movie)
+        );
+    }
+
+    private MovieResponseDto toMovieResponseDto(Movie movie) {
+        MovieResponseDto movieResponseDto = new MovieResponseDto();
+        movieResponseDto.setId(movie.getId());
+        movieResponseDto.setTmdbId(movie.getTmdbId());
+        movieResponseDto.setTitle(movie.getTitle());
+        movieResponseDto.setDescription(movie.getDescription());
+        movieResponseDto.setReleaseDate(movie.getReleaseDate());
+        movieResponseDto.setThumbnailPath(movie.getThumbnailPath());
+        movieResponseDto.setBackgroundPath(movie.getBackgroundPath());
+        movieResponseDto.setLogoPath(movie.getLogoPath());
+
+        if (movie.getCategory() != null) {
+            movieResponseDto.setCategoryName(movie.getCategory().getName());
+        }
+
+        return movieResponseDto;
     }
 }
