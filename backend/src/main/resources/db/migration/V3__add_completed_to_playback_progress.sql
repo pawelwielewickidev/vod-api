@@ -1,0 +1,2 @@
+ALTER TABLE playback_progress
+    ADD COLUMN completed BOOLEAN NOT NULL DEFAULT FALSE;

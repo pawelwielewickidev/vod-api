@@ -2,9 +2,20 @@ import { useRef, useState, useEffect } from "react";
 import { Play, Pause, Maximize, Volume2 } from "lucide-react";
 import Hls from "hls.js";
 
-export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
+const PROGRESS_SAVE_INTERVAL_MS = 15000;
+
+export default function CustomPlayer({
+  streamUrl,
+  title,
+  episodeNumber,
+  initialTimestampSeconds = 0,
+  onProgressSave,
+}) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const lastProgressSaveRef = useRef(0);
+  const initialSeekAppliedRef = useRef(false);
+  const hasPlayedRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -15,40 +26,101 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
     if (!video || !streamUrl) return;
 
     let hls;
+    initialSeekAppliedRef.current = false;
 
-    // Sprawdzamy czy to format m3u8 i czy przeglądarka wspiera hls.js (Chrome, Firefox, Edge)
-    if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+    const applyInitialSeek = () => {
+      if (
+        !initialSeekAppliedRef.current &&
+        initialTimestampSeconds > 0 &&
+        Number.isFinite(video.duration) &&
+        initialTimestampSeconds < video.duration
+      ) {
+        video.currentTime = initialTimestampSeconds;
+        initialSeekAppliedRef.current = true;
+      }
+    };
+
+    video.addEventListener("loadedmetadata", applyInitialSeek);
+    video.addEventListener("canplay", applyInitialSeek);
+
+    if (streamUrl.includes(".m3u8") && Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log("✅ HLS załadowany i gotowy do odtwarzania!");
+        applyInitialSeek();
       });
-    } 
-    // Natywne wsparcie dla m3u8 (głównie przeglądarka Safari / iOS)
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = streamUrl;
-    } 
-    // Standardowe pliki wideo (np. surowe .mp4)
-    else {
+    } else {
       video.src = streamUrl;
     }
 
-    // Sprzątanie po odmontowaniu komponentu, by uniknąć wycieków pamięci
     return () => {
+      video.removeEventListener("loadedmetadata", applyInitialSeek);
+      video.removeEventListener("canplay", applyInitialSeek);
+
       if (hls) {
         hls.destroy();
       }
     };
-  }, [streamUrl]);
+  }, [streamUrl, initialTimestampSeconds]);
+
+  const saveCurrentProgress = async ({
+    force = false,
+    keepalive = false,
+  } = {}) => {
+    // BLOKADA: Jeśli wideo nigdy nie zostało uruchomione przez użytkownika,
+    // NIE WYSYŁAJ 0 do bazy danych! Przerywamy działanie funkcji.
+    if (!hasPlayedRef.current) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video || typeof onProgressSave !== "function") {
+      return;
+    }
+
+    const currentTime = video.currentTime;
+    const duration = video.duration;
+
+    if (!Number.isFinite(currentTime) || currentTime < 0) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (
+      !force &&
+      now - lastProgressSaveRef.current < PROGRESS_SAVE_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    lastProgressSaveRef.current = now;
+
+    await onProgressSave({
+      currentTime,
+      duration,
+      keepalive,
+    });
+  };
 
   const togglePlay = () => {
+    if (!videoRef.current) {
+      return;
+    }
+
     if (videoRef.current.paused) {
-      videoRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(error => {
-        console.error("Wideo nie mogło wystartować:", error);
-      });
+      videoRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((error) => {
+          console.error("Wideo nie mogło wystartować:", error);
+        });
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -56,10 +128,62 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
   };
 
   const handleTimeUpdate = () => {
+    if (!videoRef.current) {
+      return;
+    }
+
     const current = videoRef.current.currentTime;
     const total = videoRef.current.duration;
-    setProgress((current / total) * 100 || 0); // Zapobiega błędom NaN, gdy total = 0
+
+    setProgress((current / total) * 100 || 0);
+    saveCurrentProgress();
   };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => {
+      hasPlayedRef.current = true; // AKTYWACJA: Wideo wystartowało, można zapisywać postęp!
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      saveCurrentProgress({ force: true });
+      setIsPlaying(false);
+    };
+
+    const handleEnded = () => {
+      saveCurrentProgress({ force: true });
+      setIsPlaying(false);
+      setProgress(100);
+    };
+
+    const handlePageHide = () => {
+      saveCurrentProgress({ force: true, keepalive: true });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveCurrentProgress({ force: true, keepalive: true });
+      }
+    };
+
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      saveCurrentProgress({ force: true, keepalive: true });
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [onProgressSave]);
 
   const handleSeek = (e) => {
     if (!videoRef.current || !videoRef.current.duration) return;
@@ -71,6 +195,7 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
     const percentage = clickPosition / rect.width;
 
     videoRef.current.currentTime = percentage * videoRef.current.duration;
+    saveCurrentProgress({ force: true });
   };
 
   const toggleFullScreen = () => {
@@ -95,12 +220,10 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
           <video
             ref={videoRef}
             key={streamUrl}
-            // UWAGA: Usunięto stąd atrybut `src={streamUrl}`!
-            // Źródłem steruje teraz hook `useEffect` na górze pliku.
             className="h-full object-contain cursor-pointer"
             onClick={togglePlay}
             referrerPolicy="no-referrer"
-            crossOrigin="anonymous" // Bardzo ważne przy zewnętrznych linkach m3u8
+            crossOrigin="anonymous"
             onTimeUpdate={handleTimeUpdate}
           />
         </div>
@@ -131,9 +254,9 @@ export default function CustomPlayer({ streamUrl, title, episodeNumber }) {
 
           <div
             className="absolute w-4 h-4 rounded-full scale-100 group-hover/bar:scale-125 transition-transform shadow-lg z-20 pointer-events-none"
-            style={{ 
+            style={{
               left: `calc(${progress}% - 8px)`,
-              backgroundColor: '#ff6400' // Poprawiona klasa z kolorem
+              backgroundColor: "#ff6400",
             }}
           />
         </div>

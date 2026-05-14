@@ -2,6 +2,7 @@ package com.pawel.vod_api.controller;
 
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
+import com.pawel.vod_api.dto.PlaybackProgressResponseDto;
 import com.pawel.vod_api.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MovieController {
     private final MovieService movieService;
+    private final com.pawel.vod_api.repository.PlaybackProgressRepository playbackProgressRepository;
 
     @GetMapping("/movies")
     public ResponseEntity<List<MovieResponseDto>> getAllMovies(){
@@ -126,6 +128,31 @@ public class MovieController {
         List<String> shindenSeriesUrls = movieService.getShindenSeriesUrls(movieId);
 
         return ResponseEntity.ok(Map.of("shindenUrls", shindenSeriesUrls));
+    }
+
+    @GetMapping("/movies/{movieId}/resume")
+    public ResponseEntity<PlaybackProgressResponseDto> getResumePoint(
+            @PathVariable Long movieId,
+            @RequestParam Long profileId) {
+
+        return playbackProgressRepository
+                .findFirstByProfileIdAndEpisodeMovieIdOrderByUpdatedAtDesc(profileId, movieId)
+                .map(progress -> {
+                    PlaybackProgressResponseDto dto = new PlaybackProgressResponseDto(
+                            progress.getId(),
+                            progress.getProfile().getId(),
+                            progress.getEpisode().getId(),
+                            progress.getEpisode().getMovie().getId(),
+                            progress.getEpisode().getMovie().getTitle(),
+                            progress.getEpisode().getTitle(),
+                            progress.getEpisode().getEpisodeNumber(),
+                            progress.getTimestampSeconds(),
+                            progress.isCompleted(),
+                            progress.getUpdatedAt()
+                    );
+                    return ResponseEntity.ok(dto);
+                })
+                .orElseGet(() -> ResponseEntity.noContent().build()); // 204 No Content
     }
 
 }

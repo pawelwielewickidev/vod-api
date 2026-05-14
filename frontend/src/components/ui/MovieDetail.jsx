@@ -7,11 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getStoredJson = (key) => {
   const value = localStorage.getItem(key);
-
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   try {
     return JSON.parse(value);
   } catch {
@@ -33,39 +29,43 @@ export default function MovieDetail() {
   const profile = getStoredJson("selected_profile");
   const hasWatchlistData = Boolean(token && user?.id && profile?.id);
 
+  // ZAPYTANIE 1: Watchlista
   const { data: watchlist = [] } = useQuery({
     queryKey: ["watchlist", user?.id, profile?.id],
     enabled: hasWatchlistData,
     queryFn: async () => {
       const response = await fetch(
         `${API_BASE_URL}/api/users/${user.id}/profiles/${profile.id}/watchlists`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-
-      if (!response.ok) {
-        throw new Error("Nie udało się pobrać watchlisty.");
-      }
-
+      if (!response.ok) throw new Error("Nie udało się pobrać watchlisty.");
       return response.json();
     },
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem("vod_token");
+  // ZAPYTANIE 2: Postęp odtwarzania (NOWE)
+  const { data: resumeData } = useQuery({
+    queryKey: ["resume", user?.id, profile?.id, movie?.id],
+    enabled: Boolean(hasWatchlistData && movie?.id),
+    queryFn: async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/api/movies/${movie.id}/resume?profileId=${profile.id}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (response.status === 204) return null; // Brak postępu (No Content)
+      if (!response.ok) return null;
+      return response.json(); // Mapuje się na Twój PlaybackProgressResponseDto
+    },
+  });
 
+  useEffect(() => {
     fetch(`${API_BASE_URL}/api/movies/${id}`, {
       headers: token
         ? {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           }
-        : {
-            "Content-Type": "application/json",
-          },
+        : { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -77,17 +77,14 @@ export default function MovieDetail() {
         console.error("Error loading database:", err);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, token]);
 
   useEffect(() => {
     if (!movie) return;
 
     const controller = new AbortController();
-    const token = localStorage.getItem("vod_token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
     let objectUrl = null;
-    let bgObjectUrl = null;
 
     const loadBackground = async () => {
       try {
@@ -98,10 +95,8 @@ export default function MovieDetail() {
             signal: controller.signal,
           },
         );
-
-        if (!response.ok) {
+        if (!response.ok)
           throw new Error(`Background fetch failed: ${response.status}`);
-        }
 
         const blob = await response.blob();
         objectUrl = URL.createObjectURL(blob);
@@ -111,6 +106,7 @@ export default function MovieDetail() {
         setBgUrl("");
       }
     };
+
     setBgUrl("");
 
     const bgPath = movie.backgroundPath;
@@ -127,17 +123,10 @@ export default function MovieDetail() {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [movie]);
-
-  const isMovieInWatchlist = watchlist.some(
-    (item) => item.movie?.id === movie?.id,
-  );
+  }, [movie, token]);
 
   const handleToggleWatchlist = async () => {
-    if (!movie) {
-      return;
-    }
-
+    if (!movie) return;
     if (!hasWatchlistData) {
       setWatchlistMessage("Wybierz profil i zaloguj się ponownie.");
       return;
@@ -162,7 +151,6 @@ export default function MovieDetail() {
         setWatchlistMessage("Ten film jest już na Twojej liście.");
         return;
       }
-
       if (!response.ok) {
         throw new Error(
           isMovieInWatchlist
@@ -186,6 +174,7 @@ export default function MovieDetail() {
     }
   };
 
+  // --- ZABEZPIECZENIA WIDOKU ---
   if (loading)
     return (
       <div className="p-20 text-center text-crunchy animate-pulse text-2xl font-cinema">
@@ -195,6 +184,30 @@ export default function MovieDetail() {
   if (!movie)
     return <div className="p-20 text-center text-white">Movie not found.</div>;
 
+  // --- LOGIKA PRZYCISKU ODTWARZANIA (Zdefiniowana przed returnem) ---
+  const isMovieInWatchlist = watchlist.some(
+    (item) => item.movie?.id === movie?.id,
+  );
+
+  const sortedEpisodes = movie?.episodes
+    ? [...movie.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)
+    : [];
+  const firstEpisode = sortedEpisodes.length > 0 ? sortedEpisodes[0] : null;
+
+  const hasProgress = Boolean(resumeData && resumeData.episodeId);
+
+  // Jeśli jest postęp, odpala ostatni odcinek i dokleja czas (?t=...), jeśli nie, odpala pierwszy odcinek
+  const playLink = hasProgress
+    ? `/episode/${movie.id}/${resumeData.episodeId}?t=${resumeData.timestampSeconds}`
+    : firstEpisode
+      ? `/episode/${movie.id}/${firstEpisode.id}`
+      : "#";
+
+  const playText = hasProgress
+    ? `CONTINUE WATCHING - EP ${resumeData.episodeNumber}`
+    : "START WATCHING";
+
+  // --- WŁAŚCIWY RENDER STRONY ---
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="relative w-full h-[75vh] flex items-center overflow-hidden">
@@ -208,15 +221,9 @@ export default function MovieDetail() {
             alt="Background"
             className="w-full h-full object-cover object-top"
             onError={(e) => {
-              console.error(
-                "❌ Background image could not be loaded:",
-                e.target.src,
-              );
-
               e.target.src = "https://images.alphacoders.com/133/1331511.jpeg";
             }}
           />
-
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent"></div>
         </div>
@@ -251,29 +258,28 @@ export default function MovieDetail() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            {movie.episodes && movie.episodes.length > 0 ? (
+            {/* --- ZMIENIONY PRZYCISK ODTWARZANIA --- */}
+            {firstEpisode ? (
               <Link
-                to={`/episode/${movie.id}/${movie.episodes[0].id}`}
+                to={playLink}
                 className="h-12 flex items-center gap-2 bg-[#F47521] hover:bg-[#d9661c] text-neutral-100 px-6 py-3 font-bold rounded-xs transition-colors duration-200"
               >
-                <Play fill="currentColor" /> START WATCHING
+                <Play fill="currentColor" /> {playText}
               </Link>
             ) : (
               <button
                 disabled
                 className="h-12 flex items-center gap-2 bg-neutral-600 text-neutral-400 px-6 py-3 font-bold rounded-xs cursor-not-allowed"
               >
-                <Play fill="currentColor" /> START WATCHING
+                <Play fill="currentColor" /> NO EPISODES
               </button>
             )}
+
             <button
               type="button"
               onClick={handleToggleWatchlist}
               disabled={isUpdatingWatchlist}
               title={
-                isMovieInWatchlist ? "Usuń z watchlisty" : "Dodaj do watchlisty"
-              }
-              aria-label={
                 isMovieInWatchlist ? "Usuń z watchlisty" : "Dodaj do watchlisty"
               }
               className={`h-12 w-12 p-3 border rounded-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
@@ -295,32 +301,30 @@ export default function MovieDetail() {
         </div>
       </div>
 
+      {/* --- LISTA ODCINKÓW --- */}
       {movie.episodes && movie.episodes.length > 0 && (
         <div className="max-w-6xl mx-auto px-8 py-12">
           <h3 className="text-2xl font-bold mb-6">All Episodes</h3>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {movie.episodes
-
-              .sort((a, b) => a.episodeNumber - b.episodeNumber)
-              .map((episode) => (
-                <Link
-                  key={episode.id}
-                  to={`/episode/${movie.id}/${episode.id}`}
-                  className="flex flex-col text-left p-5 rounded-xl border bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white transition-all duration-300"
-                >
-                  <span className="text-sm font-bold mb-1 text-neutral-500">
-                    Episode {episode.episodeNumber}
-                  </span>
-                  <span className="font-medium line-clamp-2 leading-tight">
-                    {episode.title}
-                  </span>
-                </Link>
-              ))}
+            {sortedEpisodes.map((episode) => (
+              <Link
+                key={episode.id}
+                to={`/episode/${movie.id}/${episode.id}`}
+                className="flex flex-col text-left p-5 rounded-xl border bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white transition-all duration-300"
+              >
+                <span className="text-sm font-bold mb-1 text-neutral-500">
+                  Episode {episode.episodeNumber}
+                </span>
+                <span className="font-medium line-clamp-2 leading-tight">
+                  {episode.title}
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       )}
 
+      {/* --- FOOTER Z METADANYMI --- */}
       <div className="max-w-7xl mx-auto px-8 md:px-16 py-12 grid md:grid-cols-3 gap-8 border-t border-neutral-900">
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
@@ -336,9 +340,9 @@ export default function MovieDetail() {
         </div>
         <div>
           <h4 className="text-crunchy font-bold uppercase text-xs tracking-widest mb-2">
-            {movie.categoryName}
+            {movie.categoryName || "Category"}
           </h4>
-          <p className="text-white">{movie.categoryName || "Akcja, Sci-Fi"}</p>
+          <p className="text-white">{movie.categoryName || "Action, Sci-Fi"}</p>
         </div>
       </div>
     </div>
