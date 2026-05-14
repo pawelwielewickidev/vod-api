@@ -18,7 +18,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: vod_db
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -43,7 +43,7 @@ jobs:
         run: ./gradlew build --no-daemon
         working-directory: ./backend
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/vod_db
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/vod_db
           SPRING_DATASOURCE_USERNAME: user
           SPRING_DATASOURCE_PASSWORD: password
           JWT_SECRET: super-tajny-klucz-jwt-do-testow-o-odpowiedniej-dlugosci
