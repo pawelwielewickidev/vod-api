@@ -3,6 +3,7 @@ package com.pawel.vod_api.controller;
 import com.pawel.vod_api.dto.CategoryResponseDto;
 import com.pawel.vod_api.dto.MovieDto;
 import com.pawel.vod_api.dto.MovieResponseDto;
+import com.pawel.vod_api.repository.PlaybackProgressRepository;
 import com.pawel.vod_api.service.JwtService;
 import com.pawel.vod_api.service.MovieService;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ public class MovieControllerTest {
 
     @MockitoBean
     private AuthenticationProvider authenticationProvider;
+
+    @MockitoBean
+    private PlaybackProgressRepository playbackProgressRepository;
 
     @Test
     @WithMockUser(username = "admin@admin.com", roles = {"USER"})

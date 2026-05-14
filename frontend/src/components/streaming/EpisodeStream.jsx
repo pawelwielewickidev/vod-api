@@ -1,41 +1,98 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import CustomPlayer from "../ui/CustomPlayer";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const getStoredJson = (key) => {
+  const value = localStorage.getItem(key);
+
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 export default function EpisodeStream() {
   const { movieId, episodeId } = useParams();
   const navigate = useNavigate();
-  
+
   const [movie, setMovie] = useState(null);
   const [episode, setEpisode] = useState(null);
+  const [initialTimestampSeconds, setInitialTimestampSeconds] = useState(0);
+  const [currentUser, setCurrentUser] = useState(() => getStoredJson("user"));
+  const [currentProfile, setCurrentProfile] = useState(() =>
+    getStoredJson("selected_profile"),
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 1. Pobieranie danych o filmie i odcinku
+  // 1. Pobieranie danych o filmie, odcinku oraz aktualnego progresu
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("vod_token");
+
         if (!token) {
           navigate("/login");
           return;
         }
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/movies/${movieId}`,
-          {
+        let user = getStoredJson("user");
+
+        if (!user?.id) {
+          const meResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
+          });
+
+          if (meResponse.status === 401 || meResponse.status === 403) {
+            localStorage.removeItem("vod_token");
+            localStorage.removeItem("user");
+            localStorage.removeItem("selected_profile");
+            navigate("/login");
+            return;
           }
-        );
+
+          if (!meResponse.ok) {
+            throw new Error(
+              `Nie udało się pobrać użytkownika: ${meResponse.status}`,
+            );
+          }
+
+          user = await meResponse.json();
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+
+        const profile = getStoredJson("selected_profile");
+
+        if (!profile?.id) {
+          navigate("/profiles");
+          return;
+        }
+
+        setCurrentUser(user);
+        setCurrentProfile(profile);
+
+        const response = await fetch(`${API_BASE_URL}/api/movies/${movieId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem("vod_token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("selected_profile");
           navigate("/login");
           return;
         }
@@ -47,10 +104,39 @@ export default function EpisodeStream() {
         const data = await response.json();
         const actualMovie = Array.isArray(data) ? data[0] : data;
         setMovie(actualMovie);
-        
-        const foundEpisode = actualMovie.episodes?.find((ep) => ep.id == episodeId);
+
+        const foundEpisode = actualMovie.episodes?.find(
+          (ep) => Number(ep.id) === Number(episodeId),
+        );
+
+        if (!foundEpisode) {
+          throw new Error("Nie znaleziono odcinka.");
+        }
+
         setEpisode(foundEpisode);
-        
+
+        const progressResponse = await fetch(
+          `${API_BASE_URL}/api/users/${user.id}/profiles/${profile.id}/playback-progress/episodes/${foundEpisode.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (progressResponse.ok) {
+          const progressData = await progressResponse.json();
+
+          if (!progressData.completed) {
+            setInitialTimestampSeconds(progressData.timestampSeconds ?? 0);
+          }
+        } else if (progressResponse.status !== 404) {
+          console.warn(
+            "Nie udało się pobrać progresu:",
+            progressResponse.status,
+          );
+        }
       } catch (err) {
         console.error("Error loading data:", err);
         setError("Failed to load episode data.");
@@ -62,11 +148,62 @@ export default function EpisodeStream() {
     fetchData();
   }, [movieId, episodeId, navigate]);
 
-  // 2. Generujemy URL do Twojego backendu (Proxy/Redirect)
-  // Zauważ: nie robimy tu już fetch(), po prostu tworzymy stringa z adresem
-  const streamUrl = episode 
-    ? `${API_BASE_URL}/api/v1/watch/${episode.id}` 
+  // 2. Generujemy URL do backendu
+  const streamUrl = episode
+    ? `${API_BASE_URL}/api/v1/watch/${episode.id}`
     : null;
+
+  const savePlaybackProgress = useCallback(
+    async ({ currentTime, duration, keepalive = false }) => {
+      const token = localStorage.getItem("vod_token");
+
+      if (!token || !currentUser?.id || !currentProfile?.id || !episode?.id) {
+        console.warn(
+          "Nie zapisano progresu: brak tokenu, użytkownika, profilu albo odcinka.",
+        );
+        return;
+      }
+
+      const timestampSeconds = Math.max(0, Math.floor(currentTime));
+      const completed =
+        Number.isFinite(duration) && duration > 0
+          ? currentTime / duration >= 0.9
+          : false;
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/${currentUser.id}/profiles/${currentProfile.id}/playback-progress/episodes/${episode.id}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              timestampSeconds,
+              completed,
+            }),
+            keepalive,
+          },
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("vod_token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("selected_profile");
+          navigate("/login");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Nie udało się zapisać progresu: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Błąd zapisu progresu oglądania:", error);
+      }
+    },
+    [currentUser?.id, currentProfile?.id, episode?.id, navigate],
+  );
 
   if (loading)
     return (
@@ -76,28 +213,38 @@ export default function EpisodeStream() {
     );
 
   if (error)
-    return <div className="min-h-screen bg-black text-white p-20 text-center">{error}</div>;
+    return (
+      <div className="min-h-screen bg-black text-white p-20 text-center">
+        {error}
+      </div>
+    );
 
   if (!movie || !episode)
-    return <div className="min-h-screen bg-black text-white p-20 text-center">Episode not found.</div>;
+    return (
+      <div className="min-h-screen bg-black text-white p-20 text-center">
+        Episode not found.
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Sekcja Odtwarzacza */}
       <div className="w-full bg-[#0a0a0a] border-b border-neutral-800">
-          <div className="max-w-[1400px] mx-auto pt-8 pb-4 px-4 sm:px-8">
-            {streamUrl ? (
-                <CustomPlayer
-                    streamUrl={streamUrl}
-                    title={episode.title}
-                    episodeNumber={episode.episodeNumber}
-                />
-            ) : (
-                <div className="w-full aspect-video flex items-center justify-center bg-neutral-900 rounded-xl border border-neutral-800 text-neutral-400 animate-pulse">
-                    Initializing stream...
-                </div>
-            )}
-          </div>
+        <div className="max-w-[1400px] mx-auto pt-8 pb-4 px-4 sm:px-8">
+          {streamUrl ? (
+            <CustomPlayer
+              streamUrl={streamUrl}
+              title={episode.title}
+              episodeNumber={episode.episodeNumber}
+              initialTimestampSeconds={initialTimestampSeconds}
+              onProgressSave={savePlaybackProgress}
+            />
+          ) : (
+            <div className="w-full aspect-video flex items-center justify-center bg-neutral-900 rounded-xl border border-neutral-800 text-neutral-400 animate-pulse">
+              Initializing stream...
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Szczegóły pod odtwarzaczem */}
@@ -137,7 +284,9 @@ export default function EpisodeStream() {
                       : "bg-[#0f0f12] border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white"
                   }`}
                 >
-                  <span className={`text-sm font-bold mb-1 ${ep.id == episodeId ? "text-[#F47521]" : "text-neutral-500"}`}>
+                  <span
+                    className={`text-sm font-bold mb-1 ${ep.id == episodeId ? "text-[#F47521]" : "text-neutral-500"}`}
+                  >
                     Episode {ep.episodeNumber}
                   </span>
                   <span className="font-medium line-clamp-2 leading-tight">
